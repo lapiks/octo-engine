@@ -1,18 +1,21 @@
+mod renderer_context;
 
-use octo_gfx::{Resolution, RenderPipelineDesc};
+use renderer_context::{RendererContext, Resolution, RenderPipelineDesc};
+
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
     window::WindowBuilder,
 };
 
+
 pub async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
 
-    let mut ctx = octo_gfx::RendererContext::new(
+    let mut ctx = RendererContext::new(
         &window, 
-        octo_gfx::Resolution {
+        Resolution {
             width: 640,
             height: 480
         }
@@ -43,6 +46,8 @@ pub async fn run() {
     
         ctx.set_compute_pipeline(compute_pipeline);
     }
+
+    let voxels = vec![vec![vec![1; 16]; 16]; 16];
 
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {

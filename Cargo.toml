@@ -6,6 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-octo-gfx = { path = "octo-gfx" }
 winit = "0.28"
 pollster = "0.3"
+wgpu = "0.18"
+raw-window-handle = "0.5"
+env_logger = "0.10"
+thiserror = "1.0.50"
+slotmap = "1.0.6"
