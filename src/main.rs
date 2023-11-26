@@ -47,8 +47,6 @@ pub async fn run() {
         ctx.set_compute_pipeline(compute_pipeline);
     }
 
-    let voxels = vec![vec![vec![1; 16]; 16]; 16];
-
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {
             ctx.commit_frame();
