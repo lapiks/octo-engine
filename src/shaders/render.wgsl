@@ -6,9 +6,10 @@ struct VertexOutput {
 @vertex
 fn vs_main(@builtin(vertex_index) vertex_idx : u32) -> VertexOutput {
     var out: VertexOutput;
-    let x = -1.0f + f32(i32(vertex_idx & 1u) << 2u);
-    let y = -1.0f + f32(i32(vertex_idx & 2u) << 1u);
+    let x = -1.0 + f32(i32(vertex_idx & 1u) << 2u);
+    let y = -1.0 + f32(i32(vertex_idx & 2u) << 1u);
     out.Position = vec4<f32>(x, y, 0.0, 1.0);
+    out.fragUV = vec2<f32>(x + 1.0, y + 1.0);
     return out;
 }
 
