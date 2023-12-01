@@ -1,6 +1,9 @@
 mod renderer_context;
 mod globals;
+mod camera;
+mod time_step;
 
+use camera::Camera;
 use globals::Globals;
 use renderer_context::{RendererContext, Resolution, PipelineDesc, ComputePass, RenderPass, Binding, BindingResource};
 
@@ -10,7 +13,6 @@ use winit::{
     window::WindowBuilder,
 };
 
-
 pub async fn run() {
     let event_loop = EventLoop::new();
     let window = WindowBuilder::new().build(&event_loop).unwrap();
@@ -18,6 +20,11 @@ pub async fn run() {
     let mut globals = Globals {
         width: 800,
         height: 600,
+    };
+
+    let mut camera = Camera {
+        position: [0.0, 0.0, -1.0],
+        focal_length: 1.0,
     };
 
     let mut ctx = RendererContext::new(
@@ -46,6 +53,14 @@ pub async fn run() {
         &wgpu::util::BufferInitDescriptor {
             label: Some("Globals buffer"),
             contents: bytemuck::bytes_of(&globals),
+            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+        }
+    );
+
+    let camera_buffer = ctx.new_buffer(
+        &wgpu::util::BufferInitDescriptor {
+            label: Some("Globals buffer"),
+            contents: bytemuck::bytes_of(&camera),
             usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
         }
     );
@@ -100,6 +115,12 @@ pub async fn run() {
                     ty: globals.binding_type(),
                     count: None,
                 },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
+                    visibility: wgpu::ShaderStages::COMPUTE,
+                    ty: camera.binding_type(),
+                    count: None,
+                },
             ]
         }
     );
@@ -117,6 +138,10 @@ pub async fn run() {
                         binding: 1,
                         resource: BindingResource::Buffer(globals_buffer),
                     },
+                    Binding {
+                        binding: 2,
+                        resource: BindingResource::Buffer(camera_buffer),
+                    },
                 ],
             };
 
@@ -133,6 +158,8 @@ pub async fn run() {
                     },
                 ],
             };
+
+            ctx.update_buffer(camera_buffer, bytemuck::bytes_of(&camera));
 
             ctx.commit_frame(&compute_pass, &render_pass);
         }
@@ -172,7 +199,25 @@ pub async fn run() {
             WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                 // new_inner_size is &&mut so we have to dereference it twice
                 ctx.resize(Resolution { width: new_inner_size.width, height: new_inner_size.height });
-            }
+            },
+            WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
+                Some(k) => match k {
+                    winit::event::VirtualKeyCode::Z => {
+                        camera.position[2] += 1.0;
+                    }
+                    winit::event::VirtualKeyCode::S => {
+                        camera.position[2] -= 1.0;
+                    }
+                    winit::event::VirtualKeyCode::Q => {
+                        camera.position[0] -= 1.0;
+                    }
+                    winit::event::VirtualKeyCode::D => {
+                        camera.position[0] += 1.0;
+                    }
+                    _ => (),
+                }
+                None => todo!(),
+            },
             WindowEvent::CloseRequested
             | WindowEvent::KeyboardInput {
                 input:
