@@ -23,11 +23,11 @@ new_key_type! {
     pub struct ComputePipelineId;
 }
 
-type TextureHandle = TextureId;
-type BufferHandle = BufferId;
-type ShaderHandle = ShaderId;
-type RenderPipelineHandle = RenderPipelineId;
-type ComputePipelineHandle = ComputePipelineId;
+pub type TextureHandle = TextureId;
+pub type BufferHandle = BufferId;
+pub type ShaderHandle = ShaderId;
+pub type RenderPipelineHandle = RenderPipelineId;
+pub type ComputePipelineHandle = ComputePipelineId;
 
 pub struct RenderPipeline {
     pub pipeline: wgpu::RenderPipeline,
