@@ -26,13 +26,13 @@ pub struct Game {
 
 impl Game {
     pub fn new(renderer: &mut RendererContext) -> Self {
-        let mut camera = Camera::new(
+        let camera = Camera::new(
             renderer,
             [0.0, 0.0, -1.0],
             1.0,
         );
 
-        let mut globals = Globals::new(
+        let globals = Globals::new(
             renderer, 
             800, 
             600,
