@@ -32,11 +32,7 @@ impl Camera {
     }
     
     pub fn binding_type(&self) -> wgpu::BindingType {
-        wgpu::BindingType::Buffer {
-            ty: wgpu::BufferBindingType::Uniform,
-            has_dynamic_offset: false,
-            min_binding_size: None,
-        }
+        return self.buffer.binding_type()
     }
 
     pub fn get_buffer(&self) -> BufferHandle {
