@@ -6,6 +6,8 @@ mod game;
 mod system;
 mod buffer_resource;
 mod inputs;
+mod file_watcher;
+mod utils;
 
 use game::Game;
 use renderer_context::{RendererContext, Resolution};

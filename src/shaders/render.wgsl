@@ -28,5 +28,5 @@ fn fs_main(@location(0) fragUV : vec2<f32>) -> @location(0) vec4<f32> {
     let r = f32(tex.x) / 256.0;
     let g = f32(tex.y) / 256.0;
     let b = f32(tex.z) / 256.0;
-    return vec4<f32>(r, g, b, 1.0);
+    return vec4<f32>(r, g, 1.0, 1.0);
 }

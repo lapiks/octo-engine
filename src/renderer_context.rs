@@ -197,6 +197,10 @@ impl RendererContext {
         self.shaders.insert(shader)
     }
 
+    pub fn destroy_shader(&mut self, handle: ShaderHandle) {
+        self.shaders.remove(handle);
+    }
+
     pub fn new_render_pipeline(&mut self, desc: &PipelineDesc) -> RenderPipelineHandle {
         let shader_module: &wgpu::ShaderModule = self.shaders.get(desc.shader).unwrap(); // todo: remove unwrap
 
@@ -238,6 +242,10 @@ impl RendererContext {
         )
     }
 
+    pub fn destroy_render_pipeline(&mut self, handle: RenderPipelineHandle) {
+        self.render_pipelines.remove(handle);
+    }
+
     pub fn new_compute_pipeline(&mut self, desc: &PipelineDesc) -> ComputePipelineHandle {
         let shader_module: &wgpu::ShaderModule = self.shaders.get(desc.shader).unwrap(); // todo: remove unwrap
 
@@ -267,12 +275,20 @@ impl RendererContext {
         )
     }
 
+    pub fn destroy_compute_pipeline(&mut self, handle: ComputePipelineHandle) {
+        self.compute_pipelines.remove(handle);
+    }
+
     pub fn new_buffer(&mut self, desc: &wgpu::util::BufferInitDescriptor) -> BufferHandle {
         let globals_buffer = self.device.create_buffer_init(desc);
 
         self.buffers.insert(
             globals_buffer
         )
+    }
+
+    pub fn destroy_buffer(&mut self, handle: BufferHandle) {
+        self.buffers.remove(handle);
     }
 
     pub fn update_buffer(&mut self, handle: BufferHandle, contents: &[u8]) {
@@ -291,6 +307,10 @@ impl RendererContext {
         self.textures.insert(
             texture_view
         )
+    }
+
+    pub fn destroy_texture(&mut self, handle: TextureHandle) {
+        self.textures.remove(handle);
     }
 
     pub fn update_texture(&mut self, handle: TextureHandle, desc: &wgpu::TextureDescriptor) {

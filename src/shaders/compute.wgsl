@@ -17,19 +17,26 @@ fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
     return ray.origin + t * ray.direction;
 }
 
-fn ray_hit_sphere(ray: Ray, sphere: Sphere) -> bool {
+fn ray_hit_sphere(ray: Ray, sphere: Sphere) -> f32 {
     let oc = ray.origin - sphere.position;
     let a = dot(ray.direction, ray.direction);
     let b = 2.0 * dot(oc, ray.direction);
     let c = dot(oc, oc) - sphere.radius * sphere.radius;
     let discriminant = b*b - 4.0*a*c;
-    return discriminant >= 0.0;
+
+    if (discriminant < 0.0) {
+        return -1.0;
+    } else {
+        return (-b - sqrt(discriminant) ) / (2.0*a);
+    }
 }
 
 fn ray_color(ray: Ray) -> vec4<f32> {
-    let sphere = Sphere(vec3(0.0, 0.0, 0.0), 0.5); 
-    if(ray_hit_sphere(ray, sphere)) {
-        return vec4<f32>(1.0, 0.0, 0.0, 1.0);
+    let sphere_pos = vec3(0.0, 0.0, 0.0);
+    let t = ray_hit_sphere(ray, Sphere(sphere_pos, 0.5));
+    if(t > 0.0) {
+        let N = normalize(ray_at(ray, t) - sphere_pos);
+        return 0.5*vec4<f32>(N.x+1.0, N.y+1.0, N.z+1.0, 1.0);
     }
 
     let y = 0.5 * (normalize(ray.direction).y + 1.0);

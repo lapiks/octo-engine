@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use glam::Vec3;
 use winit::event::VirtualKeyCode;
 
@@ -16,7 +18,9 @@ use crate::{
         PipelineDesc, 
         ComputePipelineHandle, 
         RenderPipelineHandle, 
-        TextureHandle, Resolution}, 
+        TextureHandle, Resolution, ShaderHandle}, 
+    file_watcher::FileWatcher, 
+    utils::make_relative_path, 
     };
 
 pub struct Game {
@@ -25,12 +29,17 @@ pub struct Game {
     globals: Globals,
     output_texture: TextureHandle,
     time_step: TimeStep,
+    compute_shader: ShaderHandle,
     compute_pipeline: ComputePipelineHandle,
+    render_shader: ShaderHandle,
     render_pipeline: RenderPipelineHandle,
+    file_watcher: FileWatcher,
 }
 
 impl Game {
     pub fn new(renderer: &mut RendererContext) -> Self {
+        let file_watcher = Some(FileWatcher::new("./src/shaders", Duration::from_secs(5))).unwrap().unwrap();
+        
         let inputs = Inputs::new();
 
         let camera = Camera::new(
@@ -62,12 +71,39 @@ impl Game {
             }
         );
     
-        let render_shader_src = include_str!("shaders/render.wgsl");
-        let render_shader = renderer.new_shader(render_shader_src);
-    
-        let render_pipeline = renderer.new_render_pipeline(
+        let render_shader = Game::create_render_shader(renderer);
+        let compute_shader = Game::create_compute_shader(renderer);
+        let render_pipeline = Game::create_render_pipeline(renderer, render_shader, &globals);
+        let compute_pipeline = Game::create_compute_pipeline(renderer, compute_shader, &globals, &camera);
+
+        Game {
+            inputs,
+            camera,
+            globals,
+            output_texture,
+            time_step: TimeStep::new(),
+            compute_shader,
+            compute_pipeline,
+            render_shader,
+            render_pipeline,
+            file_watcher,
+        }
+    }
+
+    fn create_render_shader(renderer: &mut RendererContext) -> ShaderHandle {
+        let render_shader_src = std::fs::read_to_string("src/shaders/render.wgsl").unwrap();
+        renderer.new_shader(render_shader_src.as_str())
+    }
+
+    fn create_compute_shader(renderer: &mut RendererContext) -> ShaderHandle {
+        let compute_shader_src = std::fs::read_to_string("src/shaders/compute.wgsl").unwrap();
+        renderer.new_shader(compute_shader_src.as_str())
+    }
+
+    fn create_render_pipeline(renderer: &mut RendererContext, shader: ShaderHandle, globals: &Globals) -> RenderPipelineHandle {
+        renderer.new_render_pipeline(
             &PipelineDesc {
-                shader: render_shader,
+                shader: shader,
                 bindings_layout: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -87,14 +123,13 @@ impl Game {
                     },
                 ]
             }
-        );
-        
-        let compute_shader_src = include_str!("shaders/compute.wgsl");
-        let compute_shader = renderer.new_shader(compute_shader_src);
-    
-        let compute_pipeline = renderer.new_compute_pipeline(
+        )
+    }
+
+    fn create_compute_pipeline(renderer: &mut RendererContext, shader: ShaderHandle, globals: &Globals, camera: &Camera) -> ComputePipelineHandle{
+        renderer.new_compute_pipeline(
             &PipelineDesc {
-                shader: compute_shader,
+                shader: shader,
                 bindings_layout: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -120,16 +155,32 @@ impl Game {
                     },
                 ]
             }
-        );
+        )
+    }
 
-        Game {
-            inputs,
-            camera,
-            globals,
-            output_texture,
-            time_step: TimeStep::new(),
-            compute_pipeline,
-            render_pipeline,
+    fn hot_reload(&mut self, renderer: &mut RendererContext) {
+        if let Some(watcher_event) = self.file_watcher.get_event() {
+            if let notify::EventKind::Modify(_) = watcher_event.kind {
+                for path in watcher_event.paths.iter() {
+                    if let Ok(relative_path) = make_relative_path(path) {
+                        if let Some(file_stem) = relative_path.file_stem() {
+                            if file_stem == "render" {
+                                renderer.destroy_shader(self.render_shader);
+                                renderer.destroy_render_pipeline(self.render_pipeline);
+                                self.render_shader = Game::create_render_shader(renderer);
+                                self.render_pipeline = Game::create_render_pipeline(renderer, self.render_shader, &self.globals);
+                                
+                            }
+                            else if file_stem == "compute" {
+                                renderer.destroy_shader(self.compute_shader);
+                                renderer.destroy_compute_pipeline(self.compute_pipeline);
+                                self.compute_shader = Game::create_compute_shader(renderer);
+                                self.compute_pipeline = Game::create_compute_pipeline(renderer, self.compute_shader, &self.globals, &self.camera);
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -160,6 +211,8 @@ impl System for Game {
     }
 
     fn render(&mut self, renderer: &mut RendererContext) {
+        self.hot_reload(renderer);
+
         let compute_pass = ComputePass {
             pipeline: self.compute_pipeline,
             bindings: &[
