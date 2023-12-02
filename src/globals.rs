@@ -1,4 +1,4 @@
-use crate::renderer_context::{RendererContext, BufferHandle};
+use crate::{renderer_context::{RendererContext, BufferHandle}, buffer_resource::BufferResource};
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -9,7 +9,7 @@ struct GlobalsData {
 
 pub struct Globals {
     data: GlobalsData,
-    buffer: BufferHandle,
+    buffer: BufferResource,
 }
 
 impl Globals {
@@ -19,13 +19,7 @@ impl Globals {
             height,
         };
 
-        let buffer = renderer.new_buffer(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Globals buffer"),
-                contents: bytemuck::bytes_of(&data),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        let buffer = BufferResource::new(renderer, &data);
 
         Globals {
             data,
@@ -34,7 +28,7 @@ impl Globals {
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
-        renderer.update_buffer(self.buffer, bytemuck::bytes_of(&self.data))
+        self.buffer.update_buffer(renderer, &self.data);
     }
 
     pub fn binding_type(&self) -> wgpu::BindingType {
@@ -46,7 +40,7 @@ impl Globals {
     }
 
     pub fn get_buffer(&self) -> BufferHandle {
-        self.buffer
+        self.buffer.get_buffer()
     }
 
     pub fn set_size(&mut self, width: u32, height: u32) {

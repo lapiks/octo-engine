@@ -1,4 +1,4 @@
-use crate::renderer_context::{BufferHandle, RendererContext};
+use crate::{renderer_context::{RendererContext, BufferHandle}, buffer_resource::BufferResource};
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -9,7 +9,7 @@ struct CameraData {
 
 pub struct Camera {
     data: CameraData,
-    buffer: BufferHandle,
+    buffer: BufferResource,
 }
 
 impl Camera {
@@ -19,13 +19,7 @@ impl Camera {
             focal_length,
         };
 
-        let buffer = renderer.new_buffer(
-            &wgpu::util::BufferInitDescriptor {
-                label: Some("Globals buffer"),
-                contents: bytemuck::bytes_of(&data),
-                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            }
-        );
+        let buffer = BufferResource::new(renderer, &data);
 
         Camera { 
             data, 
@@ -34,7 +28,7 @@ impl Camera {
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
-        renderer.update_buffer(self.buffer, bytemuck::bytes_of(&self.data))
+        self.buffer.update_buffer(renderer, &self.data);
     }
     
     pub fn binding_type(&self) -> wgpu::BindingType {
@@ -46,6 +40,6 @@ impl Camera {
     }
 
     pub fn get_buffer(&self) -> BufferHandle {
-        self.buffer
+        self.buffer.get_buffer()
     }
 } 

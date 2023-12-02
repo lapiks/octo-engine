@@ -4,6 +4,7 @@ mod camera;
 mod time_step;
 mod game;
 mod system;
+mod buffer_resource;
 
 use game::Game;
 use renderer_context::{RendererContext, Resolution};
