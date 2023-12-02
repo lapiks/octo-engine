@@ -49,38 +49,38 @@ pub struct ComputePass<'a> {
     pub pipeline: ComputePipelineHandle,
 }
 
-impl<'a> ComputePass<'a> {
-    pub fn set_bindings(&mut self, bindings: &'a[Binding]) {
-        self.bindings = bindings;
-    }
+// impl<'a> ComputePass<'a> {
+//     pub fn set_bindings(&mut self, bindings: &'a[Binding]) {
+//         self.bindings = bindings;
+//     }
 
-    pub fn set_pipeline(&mut self, pipeline: ComputePipelineHandle) {
-        self.pipeline = pipeline;
-    }
+//     pub fn set_pipeline(&mut self, pipeline: ComputePipelineHandle) {
+//         self.pipeline = pipeline;
+//     }
 
-    pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
-        //cpass.dispatch_workgroups(x, y, z);
-    }
-}
+//     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
+//         //cpass.dispatch_workgroups(x, y, z);
+//     }
+// }
 
 pub struct RenderPass<'a> {
     pub bindings: &'a [Binding],
     pub pipeline: RenderPipelineHandle,
 }
 
-impl<'a> RenderPass<'a> {
-    pub fn set_bind_group(&mut self, bindings: &'a[Binding]) {
-        self.bindings = bindings;
-    }
+// impl<'a> RenderPass<'a> {
+//     pub fn set_bind_group(&mut self, bindings: &'a[Binding]) {
+//         self.bindings = bindings;
+//     }
 
-    pub fn set_pipeline(&mut self, pipeline: RenderPipelineHandle) {
-        self.pipeline = pipeline;
-    }
+//     pub fn set_pipeline(&mut self, pipeline: RenderPipelineHandle) {
+//         self.pipeline = pipeline;
+//     }
 
-    pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
-        //cpass.dispatch_workgroups(x, y, z);
-    }
-}
+//     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
+//         //cpass.dispatch_workgroups(x, y, z);
+//     }
+// }
 
 pub enum BindingResource {
     Texture(TextureId),

@@ -135,7 +135,7 @@ impl Game {
 }
 
 impl System for Game {
-    fn init(&mut self, renderer: &mut RendererContext) {
+    fn init(&mut self, _: &mut RendererContext) {
 
     }
 
@@ -155,6 +155,8 @@ impl System for Game {
         if self.inputs.get_key_down(VirtualKeyCode::D) {
             self.camera.translate(Vec3::NEG_X * delta_time * speed);
         }
+
+        self.inputs.reset();
     }
 
     fn render(&mut self, renderer: &mut RendererContext) {
@@ -210,8 +212,8 @@ impl System for Game {
         self.inputs.on_mouse_button_up(button);
     }
 
-    fn on_mouse_move(&mut self, xDelta: f32, yDelta: f32) {
-        self.inputs.on_mouse_move(xDelta, yDelta);
+    fn on_mouse_move(&mut self, x_delta: f32, y_delta: f32) {
+        self.inputs.on_mouse_move(x_delta, y_delta);
     }
 
     fn on_mouse_wheel(&mut self, delta: f32) {

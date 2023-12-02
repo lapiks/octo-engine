@@ -41,7 +41,7 @@ pub async fn run() {
             DeviceEvent::MouseMotion { delta } => {
                 game.on_mouse_move(delta.0 as f32, delta.1 as f32);
             },
-            DeviceEvent::MouseWheel { delta } => {
+            DeviceEvent::MouseWheel { .. } => {
                 //game.on_mouse_wheel(delta as f32);
             },
             _ => {}
