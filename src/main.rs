@@ -27,6 +27,7 @@ pub async fn run() {
     ).await;
 
     let mut game = Game::new(&mut renderer);
+    game.init(&mut renderer);
     
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {

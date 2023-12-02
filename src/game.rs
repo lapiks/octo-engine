@@ -136,7 +136,7 @@ impl Game {
 
 impl System for Game {
     fn init(&mut self, renderer: &mut RendererContext) {
-        todo!()
+
     }
 
     fn update(&mut self) {
