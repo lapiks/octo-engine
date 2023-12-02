@@ -5,6 +5,7 @@ mod time_step;
 mod game;
 mod system;
 mod buffer_resource;
+mod inputs;
 
 use game::Game;
 use renderer_context::{RendererContext, Resolution};
@@ -29,10 +30,20 @@ pub async fn run() {
     
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {
+            game.update();
             game.render(&mut renderer);
         }
         Event::MainEventsCleared => {
             window.request_redraw();
+        }
+        Event::DeviceEvent { event, .. } => match event {
+            DeviceEvent::MouseMotion { delta } => {
+                game.on_mouse_move(delta.0 as f32, delta.1 as f32);
+            },
+            DeviceEvent::MouseWheel { delta } => {
+                //game.on_mouse_wheel(delta as f32);
+            },
+            _ => {}
         }
         Event::WindowEvent {
             ref event,
@@ -44,22 +55,27 @@ pub async fn run() {
             WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
                 game.resize(&mut renderer, new_inner_size.width, new_inner_size.height);
             },
-            WindowEvent::KeyboardInput { input, .. } => match input.virtual_keycode {
-                Some(k) => {
-                    game.on_key_down(k);
-                }
-                None => todo!(),
+            WindowEvent::KeyboardInput { input, .. } => match input.state {
+                ElementState::Pressed => {
+                    if let Some(keycode) = input.virtual_keycode {
+                        game.on_key_down(keycode);
+                    }
+                },
+                ElementState::Released => {
+                    if let Some(keycode) = input.virtual_keycode {
+                        game.on_key_up(keycode);
+                    }
+                },
             },
-            WindowEvent::CloseRequested
-            | WindowEvent::KeyboardInput {
-                input:
-                    KeyboardInput {
-                        state: ElementState::Pressed,
-                        virtual_keycode: Some(VirtualKeyCode::Escape),
-                        ..
-                    },
-                ..
-            } => *control_flow = ControlFlow::Exit,
+            WindowEvent::MouseInput { state, button, .. } => match state {
+                ElementState::Pressed => {
+                    game.on_mouse_button_down(*button);
+                },
+                ElementState::Released => {
+                    game.on_mouse_button_up(*button);
+                },
+            },
+            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
             _ => {}
         },
         _ => {}

@@ -1,8 +1,12 @@
+use glam::Vec3;
+use winit::event::VirtualKeyCode;
+
 use crate::{
     time_step::TimeStep, 
     system::System, 
     globals::Globals,
     camera::Camera, 
+    inputs::Inputs,
     renderer_context::{
         RendererContext, 
         ComputePass, 
@@ -12,10 +16,11 @@ use crate::{
         PipelineDesc, 
         ComputePipelineHandle, 
         RenderPipelineHandle, 
-        TextureHandle, Resolution},
+        TextureHandle, Resolution}, 
     };
 
 pub struct Game {
+    inputs: Inputs,
     camera: Camera,
     globals: Globals,
     output_texture: TextureHandle,
@@ -26,6 +31,8 @@ pub struct Game {
 
 impl Game {
     pub fn new(renderer: &mut RendererContext) -> Self {
+        let inputs = Inputs::new();
+
         let camera = Camera::new(
             renderer,
             [0.0, 0.0, -1.0],
@@ -116,6 +123,7 @@ impl Game {
         );
 
         Game {
+            inputs,
             camera,
             globals,
             output_texture,
@@ -132,7 +140,21 @@ impl System for Game {
     }
 
     fn update(&mut self) {
+        let delta_time = self.time_step.tick();
+        let speed = 2.0;
 
+        if self.inputs.get_key_down(VirtualKeyCode::Z) {
+            self.camera.translate(Vec3::Z * delta_time * speed);
+        }
+        if self.inputs.get_key_down(VirtualKeyCode::S) {
+            self.camera.translate(Vec3::NEG_Z * delta_time * speed);
+        }
+        if self.inputs.get_key_down(VirtualKeyCode::Q) {
+            self.camera.translate(Vec3::X * delta_time * speed);
+        }
+        if self.inputs.get_key_down(VirtualKeyCode::D) {
+            self.camera.translate(Vec3::NEG_X * delta_time * speed);
+        }
     }
 
     fn render(&mut self, renderer: &mut RendererContext) {
@@ -173,19 +195,27 @@ impl System for Game {
     }
 
     fn on_key_down(&mut self, key: winit::event::VirtualKeyCode) {
-        // winit::event::VirtualKeyCode::Z => {
-        //     self.camera.position[2] += 1.0;
-        // }
-        // winit::event::VirtualKeyCode::S => {
-        //     self.camera.position[2] -= 1.0;
-        // }
-        // winit::event::VirtualKeyCode::Q => {
-        //     self.camera.position[0] -= 1.0;
-        // }
-        // winit::event::VirtualKeyCode::D => {
-        //     self.camera.position[0] += 1.0;
-        // }
-        // _ => (),
+        self.inputs.on_key_down(key);
+    }
+
+    fn on_key_up(&mut self, key: winit::event::VirtualKeyCode) {
+        self.inputs.on_key_up(key);
+    }
+
+    fn on_mouse_button_down(&mut self, button: winit::event::MouseButton) {
+        self.inputs.on_mouse_button_down(button);
+    }
+
+    fn on_mouse_button_up(&mut self, button: winit::event::MouseButton) {
+        self.inputs.on_mouse_button_up(button);
+    }
+
+    fn on_mouse_move(&mut self, xDelta: f32, yDelta: f32) {
+        self.inputs.on_mouse_move(xDelta, yDelta);
+    }
+
+    fn on_mouse_wheel(&mut self, delta: f32) {
+        self.inputs.on_mouse_wheel(delta);
     }
 
     fn resize(&mut self, renderer: &mut RendererContext, width: u32, height: u32) {

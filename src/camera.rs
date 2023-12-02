@@ -1,3 +1,5 @@
+use glam::Vec3;
+
 use crate::{renderer_context::{RendererContext, BufferHandle}, buffer_resource::BufferResource};
 
 #[repr(C)]
@@ -25,6 +27,16 @@ impl Camera {
             data, 
             buffer,
         }
+    }
+
+    pub fn set_position(&mut self, pos: Vec3) {
+        self.data.position = pos.to_array();
+    }
+
+    pub fn translate(&mut self, v: Vec3) {
+        self.data.position[0] += v.x;
+        self.data.position[1] += v.y;
+        self.data.position[2] += v.z;
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
