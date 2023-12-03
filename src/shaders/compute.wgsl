@@ -17,33 +17,6 @@ fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
     return ray.origin + t * ray.direction;
 }
 
-fn ray_hit_sphere(ray: Ray, sphere: Sphere) -> f32 {
-    let oc = ray.origin - sphere.position;
-    let a = dot(ray.direction, ray.direction);
-    let b = 2.0 * dot(oc, ray.direction);
-    let c = dot(oc, oc) - sphere.radius * sphere.radius;
-    let discriminant = b*b - 4.0*a*c;
-
-    if (discriminant < 0.0) {
-        return -1.0;
-    } else {
-        return (-b - sqrt(discriminant) ) / (2.0*a);
-    }
-}
-
-fn ray_color(ray: Ray) -> vec4<f32> {
-    let sphere_pos = vec3(0.0, 0.0, 0.0);
-    let t = ray_hit_sphere(ray, Sphere(sphere_pos, 0.5));
-    if(t > 0.0) {
-        let N = normalize(ray_at(ray, t) - sphere_pos);
-        return 0.5*vec4<f32>(N.x+1.0, N.y+1.0, N.z+1.0, 1.0);
-    }
-
-    let y = 0.5 * (normalize(ray.direction).y + 1.0);
-    let color = mix(vec3(0.5, 0.7, 1.0), vec3(1.0), y);
-    return vec4<f32>(color, 1.0);
-} 
-
 struct Globals {
     screen_size: vec2<f32>, 
 };
@@ -63,8 +36,34 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     uvw.x *= ratio;
 
     let ray = Ray(camera.position, uvw);
-    let color = ray_color(ray);
-    let voxel = textureLoad(world, vec3<i32>(0), 0);
 
-    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), voxel);
+    var map_pos = vec3(floor(ray.origin));
+    let delta_dist = abs(vec3(length(ray.direction)) / ray.direction);
+    let ray_step = vec3(sign(ray.direction));
+    var side_dist = (sign(ray.direction) * (map_pos - ray.origin) + (sign(ray.direction) * 0.5) + 0.5) * delta_dist; 
+    var mask: vec3<bool> = vec3(false);
+
+    let MAX_RAY_STEPS = 64;
+    for (var i: i32 = 0; i < MAX_RAY_STEPS; i++) {
+        let voxel = textureLoad(world, vec3<i32>(map_pos), 0);
+        if (voxel.x == 255u) {
+            break;
+        }
+        mask = side_dist.xyz < min(side_dist.yzx, side_dist.zxy);
+        side_dist += vec3<f32>(mask) * delta_dist;
+		map_pos += vec3<f32>(mask) * ray_step;
+    }
+
+    var color = vec3(256u);
+	if (mask.x) {
+		color = vec3(128u);
+	}
+	if (mask.y) {
+		color = vec3(256u);
+	}
+	if (mask.z) {
+		color = vec3(192u);
+	}
+
+    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<u32>(color, 256u));
 }

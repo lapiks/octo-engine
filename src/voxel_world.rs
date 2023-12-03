@@ -41,6 +41,10 @@ impl VoxelWorld {
         self.data[coord.x as usize][coord.y as usize][coord.z as usize] = value; 
     }
 
+    pub fn get_size(&self) -> &UVec3 {
+        &self.size
+    }
+
     pub fn get_texture(&self) -> TextureHandle {
         self.texture
     }
@@ -68,5 +72,5 @@ impl VoxelWorld {
                 depth_or_array_layers: self.size.z,
             }
         );
-    } 
+    }
 }

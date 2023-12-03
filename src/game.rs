@@ -1,6 +1,6 @@
 use std::{time::Duration, path::Path};
 
-use glam::{Vec3, Vec2};
+use glam::{Vec3, Vec2, UVec3};
 use thiserror::Error;
 use winit::event::VirtualKeyCode;
 
@@ -230,6 +230,14 @@ impl System for Game {
         if let Some(compute_shader) = self.compute_shader {
             self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.world, &self.globals, &self.camera));
         }
+
+        for z in 1..self.world.get_size().z-1 {
+            for y in 1..self.world.get_size().y-1 {
+                for x in 1..self.world.get_size().x-1 {
+                    self.world.set_voxel_at(0, &UVec3::new(x, y, z));
+                }
+            }
+        }
     }
 
     fn update(&mut self) {
@@ -247,6 +255,9 @@ impl System for Game {
         }
         if self.inputs.get_key_down(VirtualKeyCode::D) {
             self.camera.translate(Vec3::NEG_X * delta_time * speed);
+        }
+        if self.inputs.get_key_down(VirtualKeyCode::Space) {
+            self.camera.translate(Vec3::Y * delta_time * speed);
         }
 
         self.inputs.reset();
