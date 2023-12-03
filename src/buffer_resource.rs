@@ -11,7 +11,7 @@ impl BufferResource {
     where T: Pod + Zeroable + Clone + Copy {
         let buffer = renderer.new_buffer(
             &wgpu::util::BufferInitDescriptor {
-                label: Some("Globals buffer"),
+                label: Some("Resource buffer"),
                 contents: bytemuck::bytes_of(data),
                 usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
             }

@@ -45,8 +45,7 @@ fn ray_color(ray: Ray) -> vec4<f32> {
 } 
 
 struct Globals {
-    width: u32,
-    height: u32
+    screen_size: vec2<f32>, 
 };
 
 @group(0) @binding(0) var world: texture_3d<u32>;
@@ -57,11 +56,10 @@ struct Globals {
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let screen_size = vec2(f32(globals.width), f32(globals.height));
-    let ratio = screen_size.x / screen_size.y;
+    let ratio = globals.screen_size.x / globals.screen_size.y;
     let viewport = vec2(2.0 * ratio, 2.0);
     let pixel_pos = vec2(f32(global_id.x), f32(global_id.y));
-    var uvw = vec3((pixel_pos / screen_size) * viewport.y - 1.0, camera.focal_length);
+    var uvw = vec3((pixel_pos / globals.screen_size) * viewport.y - 1.0, camera.focal_length);
     uvw.x *= ratio;
 
     let ray = Ray(camera.position, uvw);

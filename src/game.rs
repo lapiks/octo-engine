@@ -1,6 +1,6 @@
 use std::{time::Duration, path::Path};
 
-use glam::Vec3;
+use glam::{Vec3, Vec2};
 use thiserror::Error;
 use winit::event::VirtualKeyCode;
 
@@ -63,8 +63,7 @@ impl Game {
 
         let globals = Globals::new(
             renderer, 
-            800, 
-            600,
+            Vec2::new(800.0, 600.0)
         );
 
         let output_texture = renderer.new_texture(
@@ -344,7 +343,7 @@ impl System for Game {
                 view_formats: &[],
             }
         );
-        self.globals.set_size(width, height);
+        self.globals.set_size(Vec2::new(width as f32, height as f32));
         self.globals.update_buffer(renderer);
     }
 }

@@ -1,10 +1,11 @@
+use glam::Vec2;
+
 use crate::{renderer_context::{RendererContext, BufferHandle}, buffer_resource::BufferResource};
 
 #[repr(C)]
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct GlobalsData {
-    pub width: u32,
-    pub height: u32,
+    pub screen_size: [f32; 2],
 }
 
 pub struct Globals {
@@ -13,10 +14,9 @@ pub struct Globals {
 }
 
 impl Globals {
-    pub fn new(renderer: &mut RendererContext, width: u32, height: u32) -> Self {
+    pub fn new(renderer: &mut RendererContext, screen_size: Vec2) -> Self {
         let data = GlobalsData {
-            width,
-            height,
+            screen_size: screen_size.to_array()
         };
 
         let buffer = BufferResource::new(renderer, &data);
@@ -39,8 +39,7 @@ impl Globals {
         self.buffer.get_buffer()
     }
 
-    pub fn set_size(&mut self, width: u32, height: u32) {
-        self.data.width = width;
-        self.data.height = height;
+    pub fn set_size(&mut self, screen_size: Vec2) {
+        self.data.screen_size = screen_size.to_array();
     }
 } 
