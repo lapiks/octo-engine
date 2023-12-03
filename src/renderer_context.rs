@@ -1,11 +1,13 @@
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
-use wgpu::{util::DeviceExt, BindGroupLayoutEntry};
+use wgpu::{BindGroupLayoutEntry, util::DeviceExt};
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
     #[error("Surface error")]
     SurfaceError(#[from] wgpu::SurfaceError),
+    #[error("Could not create shader module: {0}")]
+    CreateShaderModule(String),
 }
 
 #[repr(C)]
@@ -188,13 +190,19 @@ impl RendererContext {
         }
     }
 
-    pub fn new_shader(&mut self, src: &str) -> ShaderHandle {
+    pub fn new_shader(&mut self, src: &str) -> Result<ShaderHandle, RendererContextError> {
+        self.device.push_error_scope(wgpu::ErrorFilter::Validation);
         let shader = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
             source: wgpu::ShaderSource::Wgsl(src.into()),
         });
+        let error = self.device.pop_error_scope();
+
+        if let Some(wgpu::Error::Validation { description, .. }) = pollster::block_on(error) {
+            return Err(RendererContextError::CreateShaderModule(description));
+        }
         
-        self.shaders.insert(shader)
+        Ok(self.shaders.insert(shader))
     }
 
     pub fn destroy_shader(&mut self, handle: ShaderHandle) {

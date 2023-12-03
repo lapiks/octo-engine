@@ -1,6 +1,7 @@
-use std::time::Duration;
+use std::{time::Duration, path::Path};
 
 use glam::Vec3;
+use thiserror::Error;
 use winit::event::VirtualKeyCode;
 
 use crate::{
@@ -18,10 +19,18 @@ use crate::{
         PipelineDesc, 
         ComputePipelineHandle, 
         RenderPipelineHandle, 
-        TextureHandle, Resolution, ShaderHandle}, 
+        TextureHandle, Resolution, ShaderHandle, RendererContextError}, 
     file_watcher::FileWatcher, 
     utils::make_relative_path, 
-    };
+};
+
+
+#[derive(Error, Debug)]
+pub enum GameError {
+    #[error("Renderer Context error")]
+    RendererContextError(#[from] RendererContextError),
+}
+
 
 pub struct Game {
     inputs: Inputs,
@@ -29,10 +38,10 @@ pub struct Game {
     globals: Globals,
     output_texture: TextureHandle,
     time_step: TimeStep,
-    compute_shader: ShaderHandle,
-    compute_pipeline: ComputePipelineHandle,
-    render_shader: ShaderHandle,
-    render_pipeline: RenderPipelineHandle,
+    compute_shader: Option<ShaderHandle>,
+    compute_pipeline: Option<ComputePipelineHandle>,
+    render_shader: Option<ShaderHandle>,
+    render_pipeline: Option<RenderPipelineHandle>,
     file_watcher: FileWatcher,
 }
 
@@ -70,11 +79,6 @@ impl Game {
                 view_formats: &[],
             }
         );
-    
-        let render_shader = Game::create_render_shader(renderer);
-        let compute_shader = Game::create_compute_shader(renderer);
-        let render_pipeline = Game::create_render_pipeline(renderer, render_shader, &globals);
-        let compute_pipeline = Game::create_compute_pipeline(renderer, compute_shader, &globals, &camera);
 
         Game {
             inputs,
@@ -82,22 +86,26 @@ impl Game {
             globals,
             output_texture,
             time_step: TimeStep::new(),
-            compute_shader,
-            compute_pipeline,
-            render_shader,
-            render_pipeline,
+            compute_shader: None,
+            compute_pipeline : None,
+            render_shader: None,
+            render_pipeline : None,
             file_watcher,
         }
     }
 
-    fn create_render_shader(renderer: &mut RendererContext) -> ShaderHandle {
-        let render_shader_src = std::fs::read_to_string("src/shaders/render.wgsl").unwrap();
-        renderer.new_shader(render_shader_src.as_str())
-    }
+    fn create_shader<P: AsRef<Path>>(renderer: &mut RendererContext, path: P) -> Option<ShaderHandle> {
+        let render_shader_src = std::fs::read_to_string(path).unwrap();
+        match renderer.new_shader(render_shader_src.as_str()) {
+            Ok(shader) => {
+                return Some(shader);
+            }
+            Err(e) => {
+                println!("error: {}", e);
+            }
+        }
 
-    fn create_compute_shader(renderer: &mut RendererContext) -> ShaderHandle {
-        let compute_shader_src = std::fs::read_to_string("src/shaders/compute.wgsl").unwrap();
-        renderer.new_shader(compute_shader_src.as_str())
+        None
     }
 
     fn create_render_pipeline(renderer: &mut RendererContext, shader: ShaderHandle, globals: &Globals) -> RenderPipelineHandle {
@@ -165,17 +173,28 @@ impl Game {
                     if let Ok(relative_path) = make_relative_path(path) {
                         if let Some(file_stem) = relative_path.file_stem() {
                             if file_stem == "render" {
-                                renderer.destroy_shader(self.render_shader);
-                                renderer.destroy_render_pipeline(self.render_pipeline);
-                                self.render_shader = Game::create_render_shader(renderer);
-                                self.render_pipeline = Game::create_render_pipeline(renderer, self.render_shader, &self.globals);
-                                
+                                if let Some(render_shader) = self.render_shader {
+                                    renderer.destroy_shader(render_shader);
+                                }
+                                if let Some(render_pipeline) = self.render_pipeline {
+                                    renderer.destroy_render_pipeline(render_pipeline);
+                                }
+                                self.render_shader = Game::create_shader(renderer, "src/shaders/render.wgsl");
+                                if let Some(render_shader) = self.render_shader {
+                                    self.render_pipeline = Some(Game::create_render_pipeline(renderer, render_shader, &self.globals))
+                                }
                             }
                             else if file_stem == "compute" {
-                                renderer.destroy_shader(self.compute_shader);
-                                renderer.destroy_compute_pipeline(self.compute_pipeline);
-                                self.compute_shader = Game::create_compute_shader(renderer);
-                                self.compute_pipeline = Game::create_compute_pipeline(renderer, self.compute_shader, &self.globals, &self.camera);
+                                if let Some(compute_shader) = self.compute_shader {
+                                    renderer.destroy_shader(compute_shader);
+                                }
+                                if let Some(compute_pipeline) = self.compute_pipeline {
+                                    renderer.destroy_compute_pipeline(compute_pipeline);
+                                }
+                                self.compute_shader = Game::create_shader(renderer, "src/shaders/compute.wgsl");
+                                if let Some(compute_shader) = self.compute_shader {
+                                    self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera))
+                                }
                             }
                         }
                     }
@@ -186,8 +205,15 @@ impl Game {
 }
 
 impl System for Game {
-    fn init(&mut self, _: &mut RendererContext) {
-
+    fn init(&mut self, renderer: &mut RendererContext) {
+        self.render_shader = Game::create_shader(renderer, "src/shaders/render.wgsl");
+        self.compute_shader = Game::create_shader(renderer,"src/shaders/compute.wgsl");
+        if let Some(render_shader) = self.render_shader {
+            self.render_pipeline = Some(Game::create_render_pipeline(renderer, render_shader, &self.globals));
+        }
+        if let Some(compute_shader) = self.compute_shader {
+            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera));
+        }
     }
 
     fn update(&mut self) {
@@ -213,8 +239,12 @@ impl System for Game {
     fn render(&mut self, renderer: &mut RendererContext) {
         self.hot_reload(renderer);
 
+        if self.compute_pipeline.is_none() || self.render_pipeline.is_none() {
+            return;
+        }
+
         let compute_pass = ComputePass {
-            pipeline: self.compute_pipeline,
+            pipeline: self.compute_pipeline.unwrap(),
             bindings: &[
                 Binding {
                     binding: 0,
@@ -232,7 +262,7 @@ impl System for Game {
         };
 
         let render_pass = RenderPass {
-            pipeline: self.render_pipeline,
+            pipeline: self.render_pipeline.unwrap(),
             bindings: &[
                 Binding {
                     binding: 0,
