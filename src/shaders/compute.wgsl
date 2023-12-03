@@ -44,9 +44,11 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     var mask: vec3<bool> = vec3(false);
 
     let MAX_RAY_STEPS = 64;
+    var hit = false;
     for (var i: i32 = 0; i < MAX_RAY_STEPS; i++) {
         let voxel = textureLoad(world, vec3<i32>(map_pos), 0);
         if (voxel.x == 255u) {
+            hit = true;
             break;
         }
         mask = side_dist.xyz < min(side_dist.yzx, side_dist.zxy);
@@ -54,16 +56,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		map_pos += vec3<f32>(mask) * ray_step;
     }
 
-    var color = vec3(256u);
-	if (mask.x) {
-		color = vec3(128u);
-	}
-	if (mask.y) {
-		color = vec3(256u);
-	}
-	if (mask.z) {
-		color = vec3(192u);
-	}
+    var color = vec3(255u);
+    if (!hit) {
+        color = vec3(0u);
+    }
+    else {
+        if (mask.x) {
+		    color = vec3(128u);
+        }
+        if (mask.y) {
+            color = vec3(255u);
+        }
+        if (mask.z) {
+            color = vec3(192u);
+        }
+    }
+	
 
     textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<u32>(color, 256u));
 }

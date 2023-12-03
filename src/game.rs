@@ -238,11 +238,14 @@ impl System for Game {
                 }
             }
         }
+
+        self.world.set_voxel_at(255, &UVec3::new(8, 8, 8));
+        self.camera.set_position(Vec3::new(8.0, 8.0, 4.0));
     }
 
     fn update(&mut self) {
         let delta_time = self.time_step.tick();
-        let speed = 2.0;
+        let speed = 5.0;
 
         if self.inputs.get_key_down(VirtualKeyCode::Z) {
             self.camera.translate(Vec3::Z * delta_time * speed);
@@ -250,14 +253,17 @@ impl System for Game {
         if self.inputs.get_key_down(VirtualKeyCode::S) {
             self.camera.translate(Vec3::NEG_Z * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::Q) {
+        if self.inputs.get_key_down(VirtualKeyCode::D) {
             self.camera.translate(Vec3::X * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::D) {
+        if self.inputs.get_key_down(VirtualKeyCode::Q) {
             self.camera.translate(Vec3::NEG_X * delta_time * speed);
         }
         if self.inputs.get_key_down(VirtualKeyCode::Space) {
             self.camera.translate(Vec3::Y * delta_time * speed);
+        }
+        if self.inputs.get_key_down(VirtualKeyCode::LControl) {
+            self.camera.translate(Vec3::NEG_Y * delta_time * speed);
         }
 
         self.inputs.reset();
