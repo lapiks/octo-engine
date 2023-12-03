@@ -8,6 +8,7 @@ mod buffer_resource;
 mod inputs;
 mod file_watcher;
 mod utils;
+mod voxel_world;
 
 use game::Game;
 use renderer_context::{RendererContext, Resolution};

@@ -1,6 +1,6 @@
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
-use wgpu::{BindGroupLayoutEntry, util::DeviceExt};
+use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageCopyTexture, ImageDataLayout, Extent3d};
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
@@ -31,12 +31,12 @@ pub type ShaderHandle = ShaderId;
 pub type RenderPipelineHandle = RenderPipelineId;
 pub type ComputePipelineHandle = ComputePipelineId;
 
-pub struct RenderPipeline {
+struct RenderPipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
-pub struct ComputePipeline {
+struct ComputePipeline {
     pub pipeline: wgpu::ComputePipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
@@ -50,39 +50,15 @@ pub struct ComputePass<'a> {
     pub bindings: &'a [Binding],
     pub pipeline: ComputePipelineHandle,
 }
-
-// impl<'a> ComputePass<'a> {
-//     pub fn set_bindings(&mut self, bindings: &'a[Binding]) {
-//         self.bindings = bindings;
-//     }
-
-//     pub fn set_pipeline(&mut self, pipeline: ComputePipelineHandle) {
-//         self.pipeline = pipeline;
-//     }
-
-//     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
-//         //cpass.dispatch_workgroups(x, y, z);
-//     }
-// }
-
 pub struct RenderPass<'a> {
     pub bindings: &'a [Binding],
     pub pipeline: RenderPipelineHandle,
 }
 
-// impl<'a> RenderPass<'a> {
-//     pub fn set_bind_group(&mut self, bindings: &'a[Binding]) {
-//         self.bindings = bindings;
-//     }
-
-//     pub fn set_pipeline(&mut self, pipeline: RenderPipelineHandle) {
-//         self.pipeline = pipeline;
-//     }
-
-//     pub fn dispatch(&mut self, x: u32, y: u32, z: u32) {
-//         //cpass.dispatch_workgroups(x, y, z);
-//     }
-// }
+struct Texture {
+    pub texture: wgpu::Texture,
+    pub view: wgpu::TextureView, 
+}
 
 pub enum BindingResource {
     Texture(TextureId),
@@ -100,7 +76,7 @@ pub struct RendererContext {
     device: wgpu::Device,
     queue: wgpu::Queue,
     resolution: Resolution,
-    textures: SlotMap<TextureId, wgpu::TextureView>,
+    textures: SlotMap<TextureId, Texture>,
     buffers: SlotMap<BufferId, wgpu::Buffer>,
     shaders: SlotMap<ShaderId, wgpu::ShaderModule>,
     render_pipelines: SlotMap<RenderPipelineId, RenderPipeline>,
@@ -310,10 +286,13 @@ impl RendererContext {
 
     pub fn new_texture(&mut self, desc: &wgpu::TextureDescriptor) -> TextureHandle {
         let texture = self.device.create_texture(desc);
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
 
         self.textures.insert(
-            texture_view
+            Texture { 
+                texture,
+                view
+            }
         )
     }
 
@@ -322,9 +301,34 @@ impl RendererContext {
     }
 
     pub fn update_texture(&mut self, handle: TextureHandle, desc: &wgpu::TextureDescriptor) {
-        if let Some(texture_view) = self.textures.get_mut(handle) {
-            let texture = self.device.create_texture(desc);
-            *texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
+        if let Some(texture) = self.textures.get_mut(handle) {
+            texture.texture = self.device.create_texture(desc);
+            texture.view = texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+        }
+        else {
+            print!("Unknown texture")
+        }
+    }
+
+    pub fn write_texture(
+        &mut self, 
+        handle: TextureHandle,
+        data: &[u8],
+        data_layout: ImageDataLayout,
+        size: Extent3d
+    ) {
+        if let Some(texture) = self.textures.get_mut(handle) {
+            self.queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture: &texture.texture,
+                    mip_level: 0,
+                    origin: wgpu::Origin3d::ZERO,
+                    aspect: wgpu::TextureAspect::All,
+                }, 
+                data, 
+                data_layout, 
+                size
+            )
         }
         else {
             print!("Unknown texture")
@@ -354,7 +358,7 @@ impl RendererContext {
                                     bindings.push(
                                         wgpu::BindGroupEntry {
                                             binding: binding.binding,
-                                            resource: wgpu::BindingResource::TextureView(texture),
+                                            resource: wgpu::BindingResource::TextureView(&texture.view),
                                         }
                                     )
                                 }
@@ -398,7 +402,7 @@ impl RendererContext {
                                     bindings.push(
                                         wgpu::BindGroupEntry {
                                             binding: binding.binding,
-                                            resource: wgpu::BindingResource::TextureView(texture),
+                                            resource: wgpu::BindingResource::TextureView(&texture.view),
                                         }
                                     )
                                 }

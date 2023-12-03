@@ -49,9 +49,10 @@ struct Globals {
     height: u32
 };
 
-@group(0) @binding(0) var output_texture: texture_storage_2d<rgba8uint, write>;
-@group(0) @binding(1) var<uniform> globals : Globals;
-@group(0) @binding(2) var<uniform> camera : Camera;
+@group(0) @binding(0) var world: texture_storage_3d<rgba8uint, read>;
+@group(0) @binding(1) var output_texture: texture_storage_2d<rgba8uint, write>;
+@group(0) @binding(2) var<uniform> globals : Globals;
+@group(0) @binding(3) var<uniform> camera : Camera;
 
 @compute
 @workgroup_size(1)

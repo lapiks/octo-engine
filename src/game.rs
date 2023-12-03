@@ -22,6 +22,7 @@ use crate::{
         TextureHandle, Resolution, ShaderHandle, RendererContextError}, 
     file_watcher::FileWatcher, 
     utils::make_relative_path, 
+    voxel_world::VoxelWorld, 
 };
 
 
@@ -33,6 +34,7 @@ pub enum GameError {
 
 
 pub struct Game {
+    world: VoxelWorld,
     inputs: Inputs,
     camera: Camera,
     globals: Globals,
@@ -48,6 +50,8 @@ pub struct Game {
 impl Game {
     pub fn new(renderer: &mut RendererContext) -> Self {
         let file_watcher = Some(FileWatcher::new("./src/shaders", Duration::from_secs(5))).unwrap().unwrap();
+        
+        let world = VoxelWorld::new(renderer);
         
         let inputs = Inputs::new();
 
@@ -81,6 +85,7 @@ impl Game {
         );
 
         Game {
+            world,
             inputs,
             camera,
             globals,
@@ -134,13 +139,25 @@ impl Game {
         )
     }
 
-    fn create_compute_pipeline(renderer: &mut RendererContext, shader: ShaderHandle, globals: &Globals, camera: &Camera) -> ComputePipelineHandle{
+    fn create_compute_pipeline(
+        renderer: &mut RendererContext, 
+        shader: ShaderHandle, 
+        world: &VoxelWorld,
+        globals: &Globals, 
+        camera: &Camera
+    ) -> ComputePipelineHandle{
         renderer.new_compute_pipeline(
             &PipelineDesc {
                 shader: shader,
                 bindings_layout: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
+                        visibility: wgpu::ShaderStages::COMPUTE,
+                        ty: VoxelWorld::binding_type(),
+                        count: None,
+                    },
+                    wgpu::BindGroupLayoutEntry {
+                        binding: 1,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: wgpu::BindingType::StorageTexture {
                             access: wgpu::StorageTextureAccess::WriteOnly,
@@ -150,13 +167,13 @@ impl Game {
                         count: None,
                     },
                     wgpu::BindGroupLayoutEntry {
-                        binding: 1,
+                        binding: 2,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: globals.binding_type(),
                         count: None,
                     },
                     wgpu::BindGroupLayoutEntry {
-                        binding: 2,
+                        binding: 3,
                         visibility: wgpu::ShaderStages::COMPUTE,
                         ty: camera.binding_type(),
                         count: None,
@@ -193,7 +210,7 @@ impl Game {
                                 }
                                 self.compute_shader = Game::create_shader(renderer, "src/shaders/compute.wgsl");
                                 if let Some(compute_shader) = self.compute_shader {
-                                    self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera))
+                                    self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.world, &self.globals, &self.camera))
                                 }
                             }
                         }
@@ -212,7 +229,7 @@ impl System for Game {
             self.render_pipeline = Some(Game::create_render_pipeline(renderer, render_shader, &self.globals));
         }
         if let Some(compute_shader) = self.compute_shader {
-            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera));
+            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.world, &self.globals, &self.camera));
         }
     }
 
@@ -248,14 +265,18 @@ impl System for Game {
             bindings: &[
                 Binding {
                     binding: 0,
-                    resource: BindingResource::Texture(self.output_texture),
+                    resource: BindingResource::Texture(self.world.get_texture()),
                 },
                 Binding {
                     binding: 1,
-                    resource: BindingResource::Buffer(self.globals.get_buffer()),
+                    resource: BindingResource::Texture(self.output_texture),
                 },
                 Binding {
                     binding: 2,
+                    resource: BindingResource::Buffer(self.globals.get_buffer()),
+                },
+                Binding {
+                    binding: 3,
                     resource: BindingResource::Buffer(self.camera.get_buffer()),
                 },
             ],
