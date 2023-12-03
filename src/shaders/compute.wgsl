@@ -49,7 +49,7 @@ struct Globals {
     height: u32
 };
 
-@group(0) @binding(0) var world: texture_storage_3d<rgba8uint, read>;
+@group(0) @binding(0) var world: texture_3d<u32>;
 @group(0) @binding(1) var output_texture: texture_storage_2d<rgba8uint, write>;
 @group(0) @binding(2) var<uniform> globals : Globals;
 @group(0) @binding(3) var<uniform> camera : Camera;
@@ -66,6 +66,7 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
     let ray = Ray(camera.position, uvw);
     let color = ray_color(ray);
+    let voxel = textureLoad(world, vec3<i32>(0), 0);
 
-    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<u32>(color * 256.0));
+    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), voxel);
 }

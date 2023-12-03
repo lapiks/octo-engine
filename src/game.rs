@@ -255,6 +255,7 @@ impl System for Game {
 
     fn render(&mut self, renderer: &mut RendererContext) {
         self.hot_reload(renderer);
+        self.world.update_texture(renderer);
 
         if self.compute_pipeline.is_none() || self.render_pipeline.is_none() {
             return;
