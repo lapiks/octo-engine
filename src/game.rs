@@ -277,6 +277,10 @@ impl System for Game {
         self.camera.update_buffer(renderer);
         self.world.update_texture(renderer);
         
+        if let Some(compute_bind_group) = self.compute_bind_group {
+            renderer.destroy_bind_group(compute_bind_group);
+        }
+        
         self.compute_bind_group = Some(renderer.new_compute_bind_group(
             self.compute_pipeline.unwrap(), 
             &[
@@ -297,6 +301,10 @@ impl System for Game {
                 resource: BindingResource::Buffer(self.camera.get_buffer()),
             }]
         ));
+
+        if let Some(render_bind_group) = self.render_bind_group {
+            renderer.destroy_bind_group(render_bind_group);
+        }
 
         self.render_bind_group = Some(renderer.new_render_bind_group(
             self.render_pipeline.unwrap(), 
