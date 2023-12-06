@@ -9,8 +9,10 @@ mod inputs;
 mod file_watcher;
 mod utils;
 mod voxel_world;
+mod gui;
 
 use game::Game;
+use gui::Gui;
 use renderer_context::{RendererContext, Resolution};
 
 use system::System;
@@ -36,8 +38,10 @@ pub async fn run() {
 
     let mut renderer = RendererContext::new(
         &window, 
-        Resolution { width: 800, height: 600 }
+        Resolution { width: INITIAL_WIDTH, height: INITIAL_HEIGHT }
     ).await;
+
+    let mut gui = Gui::new(&renderer);
 
     let mut game = Game::new(&mut renderer);
     game.init(&mut renderer);
@@ -45,7 +49,14 @@ pub async fn run() {
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {
             game.update();
-            game.render(&mut renderer);
+            game.hot_reload(&mut renderer);
+            game.prepare_rendering(&mut renderer);
+
+            if let Some(mut frame) =  renderer.begin_frame() {
+                game.render(&mut frame);
+                gui.render(&mut frame);
+                renderer.commit_frame(frame);
+            }
         }
         Event::MainEventsCleared => {
             window.request_redraw();

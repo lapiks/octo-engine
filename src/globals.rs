@@ -42,4 +42,8 @@ impl Globals {
     pub fn set_size(&mut self, screen_size: Vec2) {
         self.data.screen_size = screen_size.to_array();
     }
+
+    pub fn get_size(&self) -> Vec2 {
+        Vec2::from_array(self.data.screen_size)
+    }
 } 

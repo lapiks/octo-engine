@@ -1,6 +1,8 @@
+use std::ops::Range;
+
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
-use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageCopyTexture, ImageDataLayout, Extent3d};
+use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageDataLayout, Extent3d, BindGroupEntry};
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
@@ -23,6 +25,7 @@ new_key_type! {
     pub struct ShaderId;
     pub struct RenderPipelineId;
     pub struct ComputePipelineId;
+    pub struct BindGroupId;
 }
 
 pub type TextureHandle = TextureId;
@@ -30,6 +33,7 @@ pub type BufferHandle = BufferId;
 pub type ShaderHandle = ShaderId;
 pub type RenderPipelineHandle = RenderPipelineId;
 pub type ComputePipelineHandle = ComputePipelineId;
+pub type BindGroupHandle = BindGroupId;
 
 struct RenderPipeline {
     pub pipeline: wgpu::RenderPipeline,
@@ -46,12 +50,48 @@ pub struct PipelineDesc<'a> {
     pub bindings_layout: &'a [BindGroupLayoutEntry],
 }
 
+pub struct RenderPass<'a> {
+    pass: wgpu::RenderPass<'a>,
+}
+
+impl<'a> RenderPass<'a> {
+    pub fn new(pass: wgpu::RenderPass<'a>) -> Self {
+        Self {
+            pass
+        }
+    }
+
+    pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
+        self.pass.draw(vertices, instances);
+    }
+
+    pub fn get_pass(&self) -> &wgpu::RenderPass {
+        &self.pass
+    }
+}
+
 pub struct ComputePass<'a> {
-    pub bindings: &'a [Binding],
+    pass: wgpu::ComputePass<'a>,
+}
+
+impl<'a> ComputePass<'a> {
+    pub fn new(pass: wgpu::ComputePass<'a>) -> Self {
+        Self {
+            pass
+        }
+    }
+
+    pub fn dispatch(& mut self, x: u32, y: u32, z: u32) {
+        self.pass.dispatch_workgroups(x, y, z);
+    }
+}
+
+pub struct ComputePassDesc {
+    pub bind_group: BindGroupHandle,
     pub pipeline: ComputePipelineHandle,
 }
-pub struct RenderPass<'a> {
-    pub bindings: &'a [Binding],
+pub struct RenderPassDesc {
+    pub bind_group: BindGroupHandle,
     pub pipeline: RenderPipelineHandle,
 }
 
@@ -70,6 +110,78 @@ pub struct Binding {
     pub resource: BindingResource,
 }
 
+pub struct Frame<'a> {
+    renderer: &'a RendererContext,
+    surface_texture: wgpu::SurfaceTexture,
+    view: wgpu::TextureView,
+    encoder: wgpu::CommandEncoder, 
+    resolution: Resolution, 
+}
+
+impl<'a> Frame<'a> {
+    pub fn new(
+        renderer: &'a RendererContext, 
+        surface_texture: wgpu::SurfaceTexture,
+        view: wgpu::TextureView, 
+        encoder: wgpu::CommandEncoder,
+        resolution: Resolution) -> Self {
+        Self {
+            renderer,
+            surface_texture,
+            view,
+            encoder,
+            resolution,
+        }
+    }
+
+    pub fn get_resolution(&self) -> &Resolution {
+        &self.resolution
+    }
+
+    pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
+        let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
+        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
+
+        let mut render_pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: &self.view,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            label: Some("Render pass"),
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+
+        render_pass.set_bind_group(0, &bind_group, &[]);
+        render_pass.set_pipeline(&render_pipeline.pipeline);
+
+        RenderPass { 
+            pass: render_pass,
+        }
+    }
+
+    pub fn begin_compute_pass(&mut self, desc: &ComputePassDesc) -> ComputePass {
+        let compute_pipeline = self.renderer.compute_pipelines.get(desc.pipeline).unwrap();
+        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
+
+        let mut cpass = self.encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+            label: Some("Compute pass"),
+            timestamp_writes: None,
+        });
+
+        cpass.set_bind_group(0, bind_group, &[]);
+        cpass.set_pipeline(&compute_pipeline.pipeline);
+        
+
+        ComputePass::new(cpass)
+    }
+}
+
 pub struct RendererContext {
     surface: wgpu::Surface,
     surface_conf: wgpu::SurfaceConfiguration,
@@ -81,6 +193,7 @@ pub struct RendererContext {
     shaders: SlotMap<ShaderId, wgpu::ShaderModule>,
     render_pipelines: SlotMap<RenderPipelineId, RenderPipeline>,
     compute_pipelines: SlotMap<ComputePipelineId, ComputePipeline>,
+    bind_groups: SlotMap<BindGroupId, wgpu::BindGroup>,
 }
 
 impl RendererContext {
@@ -154,7 +267,12 @@ impl RendererContext {
             shaders: SlotMap::default(),
             render_pipelines: SlotMap::default(),
             compute_pipelines: SlotMap::default(),
+            bind_groups: SlotMap::default(),
         }
+    }
+
+    pub fn get_device(&self) -> &wgpu::Device {
+        &self.device
     }
 
     pub fn resize(&mut self, resolution: Resolution) {
@@ -263,6 +381,84 @@ impl RendererContext {
         self.compute_pipelines.remove(handle);
     }
 
+    pub fn new_render_bind_group(&mut self, pipeline: RenderPipelineHandle, bindings: &[Binding]) -> BindGroupHandle{
+        let render_pipeline = self.render_pipelines.get(pipeline).unwrap();
+        let mut bind_group_entries = Vec::with_capacity(bindings.len());
+        for binding in bindings {
+            match binding.resource {
+                BindingResource::Texture(id) => {
+                    if let Some(texture) = self.textures.get(id) {
+                        bind_group_entries.push(
+                            wgpu::BindGroupEntry {
+                                binding: binding.binding,
+                                resource: wgpu::BindingResource::TextureView(&texture.view),
+                            }
+                        )
+                    }
+                },
+                BindingResource::Buffer(id) => {
+                    if let Some(buffer) = self.buffers.get(id) {
+                        bind_group_entries.push(
+                            wgpu::BindGroupEntry {
+                                binding: binding.binding,
+                                resource: buffer.as_entire_binding(),
+                            }
+                        )
+                    }
+                },
+            };
+        }
+
+        self.bind_groups.insert(
+            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &render_pipeline.bind_group_layout,
+                entries: &bind_group_entries[..],
+            })
+        )
+    }
+
+    pub fn new_compute_bind_group(&mut self, pipeline: ComputePipelineHandle, bindings: &[Binding]) -> BindGroupHandle{
+        let render_pipeline = self.compute_pipelines.get(pipeline).unwrap();
+        let mut bind_group_entries = Vec::with_capacity(bindings.len());
+        for binding in bindings {
+            match binding.resource {
+                BindingResource::Texture(id) => {
+                    if let Some(texture) = self.textures.get(id) {
+                        bind_group_entries.push(
+                            wgpu::BindGroupEntry {
+                                binding: binding.binding,
+                                resource: wgpu::BindingResource::TextureView(&texture.view),
+                            }
+                        )
+                    }
+                },
+                BindingResource::Buffer(id) => {
+                    if let Some(buffer) = self.buffers.get(id) {
+                        bind_group_entries.push(
+                            wgpu::BindGroupEntry {
+                                binding: binding.binding,
+                                resource: buffer.as_entire_binding(),
+                            }
+                        )
+                    }
+                },
+            };
+        }
+
+        self.bind_groups.insert(
+            self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: None,
+                layout: &render_pipeline.bind_group_layout,
+                entries: &bind_group_entries[..],
+            })
+        )
+    }
+
+    pub fn destroy_bind_group(&mut self, handle: BindGroupHandle) {
+        self.bind_groups.remove(handle);
+    }
+
     pub fn new_buffer(&mut self, desc: &wgpu::util::BufferInitDescriptor) -> BufferHandle {
         let globals_buffer = self.device.create_buffer_init(desc);
 
@@ -335,129 +531,36 @@ impl RendererContext {
         }
     }
 
-    pub fn commit_frame(&mut self, compute_pass: &ComputePass, render_pass: &RenderPass) -> Result<(), wgpu::SurfaceError> {
-        let render_pipeline_id = render_pass.pipeline;        
-        let render_pipeline = self.render_pipelines.get(render_pipeline_id).unwrap();
-        let compute_pipeline_id = compute_pass.pipeline;     
-        let compute_pipeline = self.compute_pipelines.get(compute_pipeline_id).unwrap();
-
+    pub fn begin_frame(&self) -> Option<Frame> {
         match self.surface.get_current_texture() {
-            Ok(frame) => {
-                let view = frame.texture.create_view(&wgpu::TextureViewDescriptor::default());
-                let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
+            Ok(surface_texture) => {
+                let view = surface_texture.texture.create_view(&wgpu::TextureViewDescriptor::default());
+                let encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
                     label: None,
                 });
-        
-                // Compute pass
-                {
-                    let mut bindings = Vec::with_capacity(compute_pass.bindings.len());
-                    for binding in compute_pass.bindings {
-                        match binding.resource {
-                            BindingResource::Texture(id) => {
-                                if let Some(texture) = self.textures.get(id) {
-                                    bindings.push(
-                                        wgpu::BindGroupEntry {
-                                            binding: binding.binding,
-                                            resource: wgpu::BindingResource::TextureView(&texture.view),
-                                        }
-                                    )
-                                }
-                            },
-                            BindingResource::Buffer(id) => {
-                                if let Some(buffer) = self.buffers.get(id) {
-                                    bindings.push(
-                                        wgpu::BindGroupEntry {
-                                            binding: binding.binding,
-                                            resource: buffer.as_entire_binding(),
-                                        }
-                                    )
-                                }
-                            },
-                        };
-                    }
 
-                    let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        layout: &compute_pipeline.bind_group_layout,
-                        entries: &bindings,
-                        label: None,
-                    });
-
-                    let mut cpass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-                        label: Some("Compute pass"),
-                        timestamp_writes: None,
-                    });
-
-                    cpass.set_bind_group(0, &bind_group, &[]);
-                    cpass.set_pipeline(&compute_pipeline.pipeline);
-                    cpass.dispatch_workgroups(self.resolution.width, self.resolution.height, 1); // Number of cells to run, the (x,y,z) size of item being processed
-                }
-
-                // Render pass 
-                {
-                    let mut bindings = Vec::with_capacity(render_pass.bindings.len());
-                    for binding in render_pass.bindings {
-                        match binding.resource {
-                            BindingResource::Texture(id) => {
-                                if let Some(texture) = self.textures.get(id) {
-                                    bindings.push(
-                                        wgpu::BindGroupEntry {
-                                            binding: binding.binding,
-                                            resource: wgpu::BindingResource::TextureView(&texture.view),
-                                        }
-                                    )
-                                }
-                            },
-                            BindingResource::Buffer(id) => {
-                                if let Some(buffer) = self.buffers.get(id) {
-                                    bindings.push(
-                                        wgpu::BindGroupEntry {
-                                            binding: binding.binding,
-                                            resource: buffer.as_entire_binding(),
-                                        }
-                                    )
-                                }
-                            },
-                        };
-                    }
-
-                    let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
-                        label: None,
-                        layout: &render_pipeline.bind_group_layout,
-                        entries: &bindings,
-                    });
-
-                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                        color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                            view: &view,
-                            resolve_target: None,
-                            ops: wgpu::Operations {
-                                load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                                store: wgpu::StoreOp::Store,
-                            },
-                        })],
-                        depth_stencil_attachment: None,
-                        label: Some("Render pass"),
-                        timestamp_writes: None,
-                        occlusion_query_set: None,
-                    });
-        
-                    render_pass.set_bind_group(0, &bind_group, &[]);
-                    render_pass.set_pipeline(&render_pipeline.pipeline);
-                    render_pass.draw(0..3, 0..1);
-                }
-            
-                // submit will accept anything that implements IntoIter
-                self.queue.submit(std::iter::once(encoder.finish()));
-                frame.present();
+                return Some(Frame::new(
+                    &self,
+                    surface_texture,
+                    view,
+                    encoder,
+                    self.resolution
+                ));
             }
             // Reconfigure the surface if lost
-            Err(wgpu::SurfaceError::Lost) => self.resize(self.resolution),
+            Err(wgpu::SurfaceError::Lost) => (), // self.resize(self.resolution),
             // The system is out of memory, we should probably quit
             //Err(wgpu::SurfaceError::OutOfMemory) => *control_flow = ControlFlow::Exit,
             // All other errors (Outdated, Timeout) should be resolved by the next frame
             Err(e) => eprintln!("{:?}", e),
-        }        
-    
-        Ok(())
+        }
+
+        None
+    }
+
+    pub fn commit_frame(&self, frame: Frame) {    
+        // submit will accept anything that implements IntoIter
+        self.queue.submit(std::iter::once(frame.encoder.finish()));
+        frame.surface_texture.present();
     }
 }

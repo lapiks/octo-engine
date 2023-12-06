@@ -16,3 +16,5 @@ slotmap = "1.0.6"
 bytemuck = { version = "1.14", features = [ "derive" ] }
 glam = "0.24.2"
 notify = "6.1.1"
+egui = "0.24.1"
+egui-wgpu = "0.24.1"

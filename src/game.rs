@@ -12,14 +12,14 @@ use crate::{
     inputs::Inputs,
     renderer_context::{
         RendererContext, 
-        ComputePass, 
+        ComputePassDesc, 
         Binding, 
         BindingResource, 
-        RenderPass, 
+        RenderPassDesc, 
         PipelineDesc, 
         ComputePipelineHandle, 
         RenderPipelineHandle, 
-        TextureHandle, Resolution, ShaderHandle, RendererContextError}, 
+        TextureHandle, Resolution, ShaderHandle, RendererContextError, Frame, BindGroupHandle}, 
     file_watcher::FileWatcher, 
     utils::make_relative_path, 
     voxel_world::VoxelWorld, 
@@ -42,8 +42,10 @@ pub struct Game {
     time_step: TimeStep,
     compute_shader: Option<ShaderHandle>,
     compute_pipeline: Option<ComputePipelineHandle>,
+    compute_bind_group: Option<BindGroupHandle>,
     render_shader: Option<ShaderHandle>,
     render_pipeline: Option<RenderPipelineHandle>,
+    render_bind_group: Option<BindGroupHandle>,
     file_watcher: FileWatcher,
 }
 
@@ -92,8 +94,10 @@ impl Game {
             time_step: TimeStep::new(),
             compute_shader: None,
             compute_pipeline : None,
+            compute_bind_group: None,
             render_shader: None,
             render_pipeline : None,
+            render_bind_group: None,
             file_watcher,
         }
     }
@@ -182,7 +186,7 @@ impl Game {
         )
     }
 
-    fn hot_reload(&mut self, renderer: &mut RendererContext) {
+    pub fn hot_reload(&mut self, renderer: &mut RendererContext) {
         if let Some(watcher_event) = self.file_watcher.get_event() {
             if let notify::EventKind::Modify(_) = watcher_event.kind {
                 for path in watcher_event.paths.iter() {
@@ -269,52 +273,66 @@ impl System for Game {
         self.inputs.reset();
     }
 
-    fn render(&mut self, renderer: &mut RendererContext) {
-        self.hot_reload(renderer);
+    fn prepare_rendering(&mut self, renderer: &mut RendererContext) {
+        self.camera.update_buffer(renderer);
         self.world.update_texture(renderer);
+        
+        self.compute_bind_group = Some(renderer.new_compute_bind_group(
+            self.compute_pipeline.unwrap(), 
+            &[
+            Binding {
+                binding: 0,
+                resource: BindingResource::Texture(self.world.get_texture()),
+            },
+            Binding {
+                binding: 1,
+                resource: BindingResource::Texture(self.output_texture),
+            },
+            Binding {
+                binding: 2,
+                resource: BindingResource::Buffer(self.globals.get_buffer()),
+            },
+            Binding {
+                binding: 3,
+                resource: BindingResource::Buffer(self.camera.get_buffer()),
+            }]
+        ));
 
-        if self.compute_pipeline.is_none() || self.render_pipeline.is_none() {
-            return;
+        self.render_bind_group = Some(renderer.new_render_bind_group(
+            self.render_pipeline.unwrap(), 
+            &[
+            Binding {
+                binding: 0,
+                resource: BindingResource::Texture(self.output_texture),
+            },
+            Binding {
+                binding: 1,
+                resource: BindingResource::Buffer(self.globals.get_buffer()),
+            }]
+        ));
+    }
+
+    fn render(&mut self, frame: &mut Frame) {
+        // Compute pass
+        {
+            let mut cpass = frame.begin_compute_pass(
+                &ComputePassDesc {
+                pipeline: self.compute_pipeline.unwrap(),
+                bind_group: self.compute_bind_group.unwrap(),
+            });
+            let output_size = self.globals.get_size();
+            cpass.dispatch(output_size.x as u32, output_size.y as u32, 1);
         }
 
-        let compute_pass = ComputePass {
-            pipeline: self.compute_pipeline.unwrap(),
-            bindings: &[
-                Binding {
-                    binding: 0,
-                    resource: BindingResource::Texture(self.world.get_texture()),
-                },
-                Binding {
-                    binding: 1,
-                    resource: BindingResource::Texture(self.output_texture),
-                },
-                Binding {
-                    binding: 2,
-                    resource: BindingResource::Buffer(self.globals.get_buffer()),
-                },
-                Binding {
-                    binding: 3,
-                    resource: BindingResource::Buffer(self.camera.get_buffer()),
-                },
-            ],
-        };
-
-        let render_pass = RenderPass {
-            pipeline: self.render_pipeline.unwrap(),
-            bindings: &[
-                Binding {
-                    binding: 0,
-                    resource: BindingResource::Texture(self.output_texture),
-                },
-                Binding {
-                    binding: 1,
-                    resource: BindingResource::Buffer(self.globals.get_buffer()),
-                },
-            ],
-        };
-
-        self.camera.update_buffer(renderer);
-        renderer.commit_frame(&compute_pass, &render_pass);
+        // Render pass
+        {
+            let mut rpass = frame.begin_render_pass(
+                &RenderPassDesc {
+                pipeline: self.render_pipeline.unwrap(),
+                bind_group: self.render_bind_group.unwrap(),
+            });
+            rpass.draw(0..3, 0..1);
+        }
     }
 
     fn on_key_down(&mut self, key: winit::event::VirtualKeyCode) {

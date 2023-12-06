@@ -1,9 +1,12 @@
-use crate::renderer_context::RendererContext;
+use egui_wgpu::Renderer;
+
+use crate::renderer_context::{RendererContext, Frame};
 
 pub trait System {
     fn init(&mut self, renderer: &mut RendererContext);
     fn update(&mut self);
-    fn render(&mut self, renderer: &mut RendererContext);
+    fn prepare_rendering(&mut self, renderer: &mut RendererContext);
+    fn render(&mut self, frame: &mut Frame);
     fn resize(&mut self, renderer: &mut RendererContext, width: u32, height: u32);
     fn on_key_down(&mut self, key: winit::event::VirtualKeyCode);
     fn on_key_up(&mut self, key: winit::event::VirtualKeyCode);
