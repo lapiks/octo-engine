@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
-use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageDataLayout, Extent3d, BindGroupEntry};
+use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageDataLayout, Extent3d};
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
@@ -63,10 +63,6 @@ impl<'a> RenderPass<'a> {
 
     pub fn draw(&mut self, vertices: Range<u32>, instances: Range<u32>) {
         self.pass.draw(vertices, instances);
-    }
-
-    pub fn get_pass(&self) -> &wgpu::RenderPass {
-        &self.pass
     }
 }
 
@@ -138,11 +134,8 @@ impl<'a> Frame<'a> {
         &self.resolution
     }
 
-    pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
-        let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
-        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
-
-        let mut render_pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+    pub fn new_render_pass(&mut self) -> wgpu::RenderPass {
+        self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                 view: &self.view,
                 resolve_target: None,
@@ -155,14 +148,18 @@ impl<'a> Frame<'a> {
             label: Some("Render pass"),
             timestamp_writes: None,
             occlusion_query_set: None,
-        });
+        })
+    }
 
+    pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
+        let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
+        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
+
+        let mut render_pass = self.new_render_pass();
         render_pass.set_bind_group(0, &bind_group, &[]);
         render_pass.set_pipeline(&render_pipeline.pipeline);
 
-        RenderPass { 
-            pass: render_pass,
-        }
+        RenderPass::new(render_pass)
     }
 
     pub fn begin_compute_pass(&mut self, desc: &ComputePassDesc) -> ComputePass {
@@ -177,7 +174,6 @@ impl<'a> Frame<'a> {
         cpass.set_bind_group(0, bind_group, &[]);
         cpass.set_pipeline(&compute_pipeline.pipeline);
         
-
         ComputePass::new(cpass)
     }
 }

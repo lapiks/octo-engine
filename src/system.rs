@@ -1,5 +1,3 @@
-use egui_wgpu::Renderer;
-
 use crate::renderer_context::{RendererContext, Frame};
 
 pub trait System {

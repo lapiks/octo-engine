@@ -1,6 +1,6 @@
 use egui_wgpu::renderer::ScreenDescriptor;
 
-use crate::{renderer_context::{Frame, RenderPassDesc, RendererContext, RenderPipelineHandle, PipelineDesc}, system::System};
+use crate::{renderer_context::{Frame, RendererContext}, system::System};
 
 
 pub struct Gui {
@@ -38,40 +38,34 @@ impl System for Gui {
     }
 
     fn render(&mut self, frame: &mut Frame) {
-        let mut name = "Arthur".to_owned();
-        let mut age = 42;
+        // let mut name = "Arthur".to_owned();
+        // let mut age = 42;
 
-        let raw_input = egui::RawInput::default();
-        let full_output = self.ctx.run(raw_input, |ctx| {
-            egui::CentralPanel::default().show(&self.ctx, |ui| {
-                ui.heading("My egui Application");
-                ui.horizontal(|ui| {
-                    let name_label = ui.label("Your name: ");
-                    ui.text_edit_singleline(&mut name)
-                        .labelled_by(name_label.id);
-                });
-                ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
-                if ui.button("Click each year").clicked() {
-                    age += 1;
-                }
-                ui.label(format!("Hello '{name}', age {age}"));
-            });
-        });
+        // let raw_input = egui::RawInput::default();
+        // let full_output = self.ctx.run(raw_input, |ctx| {
+        //     egui::CentralPanel::default().show(&self.ctx, |ui| {
+        //         ui.heading("My egui Application");
+        //         ui.horizontal(|ui| {
+        //             let name_label = ui.label("Your name: ");
+        //             ui.text_edit_singleline(&mut name)
+        //                 .labelled_by(name_label.id);
+        //         });
+        //         ui.add(egui::Slider::new(&mut age, 0..=120).text("age"));
+        //         if ui.button("Click each year").clicked() {
+        //             age += 1;
+        //         }
+        //         ui.label(format!("Hello '{name}', age {age}"));
+        //     });
+        // });
 
-        let clipped_primitives = self.ctx.tessellate(full_output.shapes, full_output.pixels_per_point);
-
-        // let pass = frame.begin_render_pass(
-        //     &RenderPassDesc {
-        //         bindings: &[],
-        //         pipeline: ,
-        //     }
-        // );
-
+        // let clipped_primitives = self.ctx.tessellate(full_output.shapes, full_output.pixels_per_point);
+        // let mut rpass = frame.new_render_pass();
+    
         // self.gui_renderer.render(
-        //     &mut pass.get_pass(),
+        //     &mut rpass,
         //     &clipped_primitives[..],
         //     &ScreenDescriptor {
-        //         size_in_pixels: [frame.get_resolution().width, frame.get_resolution().height],
+        //         size_in_pixels: [800, 600],
         //         pixels_per_point: full_output.pixels_per_point,
         //     }
         // );
