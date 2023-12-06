@@ -110,8 +110,7 @@ pub struct Frame<'a> {
     renderer: &'a RendererContext,
     surface_texture: wgpu::SurfaceTexture,
     view: wgpu::TextureView,
-    encoder: wgpu::CommandEncoder, 
-    resolution: Resolution, 
+    encoder: wgpu::CommandEncoder,
 }
 
 impl<'a> Frame<'a> {
@@ -119,19 +118,13 @@ impl<'a> Frame<'a> {
         renderer: &'a RendererContext, 
         surface_texture: wgpu::SurfaceTexture,
         view: wgpu::TextureView, 
-        encoder: wgpu::CommandEncoder,
-        resolution: Resolution) -> Self {
+        encoder: wgpu::CommandEncoder) -> Self {
         Self {
             renderer,
             surface_texture,
             view,
             encoder,
-            resolution,
         }
-    }
-
-    pub fn get_resolution(&self) -> &Resolution {
-        &self.resolution
     }
 
     pub fn new_render_pass(&mut self) -> wgpu::RenderPass {
@@ -539,8 +532,7 @@ impl RendererContext {
                     &self,
                     surface_texture,
                     view,
-                    encoder,
-                    self.resolution
+                    encoder
                 ));
             }
             // Reconfigure the surface if lost
