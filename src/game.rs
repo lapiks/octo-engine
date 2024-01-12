@@ -125,7 +125,7 @@ impl Game {
     fn create_render_pipeline(renderer: &mut RendererContext, shader: ShaderHandle, globals: &Globals) -> RenderPipelineHandle {
         renderer.new_render_pipeline(
             &PipelineDesc {
-                shader: shader,
+                shader,
                 bindings_layout: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -151,13 +151,12 @@ impl Game {
     fn create_compute_pipeline(
         renderer: &mut RendererContext, 
         shader: ShaderHandle, 
-        world: &VoxelWorld,
         globals: &Globals, 
         camera: &Camera
     ) -> ComputePipelineHandle{
         renderer.new_compute_pipeline(
             &PipelineDesc {
-                shader: shader,
+                shader,
                 bindings_layout: &[
                     wgpu::BindGroupLayoutEntry {
                         binding: 0,
@@ -219,7 +218,7 @@ impl Game {
                                 }
                                 self.compute_shader = Game::create_shader(renderer, "src/shaders/compute.wgsl");
                                 if let Some(compute_shader) = self.compute_shader {
-                                    self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.world, &self.globals, &self.camera))
+                                    self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera))
                                 }
                             }
                         }
@@ -238,7 +237,7 @@ impl System for Game {
             self.render_pipeline = Some(Game::create_render_pipeline(renderer, render_shader, &self.globals));
         }
         if let Some(compute_shader) = self.compute_shader {
-            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.world, &self.globals, &self.camera));
+            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera));
         }
 
         for z in 1..self.world.get_size().z-1 {
