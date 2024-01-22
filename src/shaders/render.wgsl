@@ -13,16 +13,18 @@ fn vs_main(@builtin(vertex_index) vertex_idx : u32) -> VertexOutput {
     return out;
 }
 
-struct Globals {
-    screen_size: vec2<f32>,
-};
+struct Camera {
+    position: vec3<f32>,
+    size: vec2<f32>,
+    focal_length: f32,
+}
 
 @group(0) @binding(0) var t_color : texture_2d<u32>;
-@group(0) @binding(1) var<uniform> globals : Globals;
+@group(0) @binding(1) var<uniform> camera : Camera;
 
 @fragment
 fn fs_main(@location(0) fragUV : vec2<f32>) -> @location(0) vec4<f32> {
-    let tex = textureLoad(t_color, vec2<i32>(fragUV * globals.screen_size), 0);
+    let tex = textureLoad(t_color, vec2<i32>(fragUV * camera.size), 0);
     let r = f32(tex.x) / 256.0;
     let g = f32(tex.y) / 256.0;
     let b = f32(tex.z) / 256.0;

@@ -194,9 +194,7 @@ impl RendererContext {
         // Instance
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
-            dx12_shader_compiler: Default::default(),
-            flags: Default::default(),
-            gles_minor_version: Default::default(),
+            ..Default::default()
         });
         
         // Surface

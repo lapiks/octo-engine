@@ -5,6 +5,7 @@ struct Sphere {
 
 struct Camera {
     position: vec3<f32>,
+    size: vec2<f32>,
     focal_length: f32,
 }
 
@@ -17,22 +18,17 @@ fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
     return ray.origin + t * ray.direction;
 }
 
-struct Globals {
-    screen_size: vec2<f32>, 
-};
-
 @group(0) @binding(0) var world: texture_3d<u32>;
 @group(0) @binding(1) var output_texture: texture_storage_2d<rgba8uint, write>;
-@group(0) @binding(2) var<uniform> globals : Globals;
-@group(0) @binding(3) var<uniform> camera : Camera;
+@group(0) @binding(2) var<uniform> camera : Camera;
 
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let ratio = globals.screen_size.x / globals.screen_size.y;
+    let ratio = camera.size.x / camera.size.y;
     let viewport = vec2(2.0 * ratio, 2.0);
     let pixel_pos = vec2(f32(global_id.x), f32(global_id.y));
-    var uvw = vec3((pixel_pos / globals.screen_size) * viewport.y - 1.0, camera.focal_length);
+    var uvw = vec3((pixel_pos / camera.size) * viewport.y - 1.0, camera.focal_length);
     uvw.x *= ratio;
 
     let ray = Ray(camera.position, uvw);

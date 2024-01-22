@@ -1,5 +1,3 @@
-use egui_wgpu::renderer::ScreenDescriptor;
-
 use crate::{renderer_context::{Frame, RendererContext}, system::System};
 
 

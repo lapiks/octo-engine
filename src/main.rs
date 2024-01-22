@@ -10,6 +10,8 @@ mod file_watcher;
 mod utils;
 mod voxel_world;
 mod gui;
+mod ray;
+mod color;
 
 use game::Game;
 use gui::Gui;
@@ -41,8 +43,8 @@ pub async fn run() {
         Resolution { width: INITIAL_WIDTH, height: INITIAL_HEIGHT }
     ).await;
 
+    
     let mut gui = Gui::new(&renderer);
-
     let mut game = Game::new(&mut renderer);
     game.init(&mut renderer);
     

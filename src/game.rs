@@ -1,8 +1,8 @@
-use std::{time::Duration, path::Path};
+use std::{time::Duration, path::Path, f32::consts::PI};
 
-use glam::{Vec3, Vec2, UVec3};
+use glam::{Vec3, Vec2, UVec3, vec3, vec2};
 use thiserror::Error;
-use winit::event::VirtualKeyCode;
+use winit::event::{VirtualKeyCode, MouseButton};
 
 use crate::{
     time_step::TimeStep, 
@@ -65,14 +65,13 @@ impl Game {
 
         let camera = Camera::new(
             renderer,
-            [0.0, 0.0, -1.0],
+            vec3(0.0, 0.0, -1.0),
+            vec2(800.0, 600.0),
             1.0,
+            PI / 4.0,
         );
 
-        let globals = Globals::new(
-            renderer, 
-            Vec2::new(800.0, 600.0)
-        );
+        let globals = Globals::new(renderer);
 
         let output_texture = renderer.new_texture(
             &wgpu::TextureDescriptor {
@@ -177,12 +176,6 @@ impl Game {
                     wgpu::BindGroupLayoutEntry {
                         binding: 2,
                         visibility: wgpu::ShaderStages::COMPUTE,
-                        ty: globals.binding_type(),
-                        count: None,
-                    },
-                    wgpu::BindGroupLayoutEntry {
-                        binding: 3,
-                        visibility: wgpu::ShaderStages::COMPUTE,
                         ty: camera.binding_type(),
                         count: None,
                     },
@@ -274,6 +267,12 @@ impl System for Game {
         if self.inputs.get_key_down(VirtualKeyCode::LControl) {
             self.camera.translate(Vec3::NEG_Y * delta_time * speed);
         }
+        if self.inputs.get_button_down(MouseButton::Left) {
+            let ray = self.camera.ray_for_pixel(
+                self.camera.size().x / 2.0, 
+                self.camera.size().y / 2.0
+            );
+        }
 
         self.inputs.reset();
     }
@@ -299,10 +298,6 @@ impl System for Game {
             },
             Binding {
                 binding: 2,
-                resource: BindingResource::Buffer(self.globals.get_buffer()),
-            },
-            Binding {
-                binding: 3,
                 resource: BindingResource::Buffer(self.camera.get_buffer()),
             }]
         ));
@@ -320,7 +315,7 @@ impl System for Game {
             },
             Binding {
                 binding: 1,
-                resource: BindingResource::Buffer(self.globals.get_buffer()),
+                resource: BindingResource::Buffer(self.camera.get_buffer()),
             }]
         ));
     }
@@ -333,7 +328,7 @@ impl System for Game {
                 pipeline: self.compute_pipeline.unwrap(),
                 bind_group: self.compute_bind_group.unwrap(),
             });
-            let output_size = self.globals.get_size();
+            let output_size = self.camera.size();
             cpass.dispatch(output_size.x as u32, output_size.y as u32, 1);
         }
 
@@ -391,7 +386,7 @@ impl System for Game {
                 view_formats: &[],
             }
         );
-        self.globals.set_size(Vec2::new(width as f32, height as f32));
-        self.globals.update_buffer(renderer);
+        self.camera.set_size(Vec2::new(width as f32, height as f32));
+        self.camera.update_buffer(renderer);
     }
 }
