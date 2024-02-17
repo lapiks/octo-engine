@@ -1,6 +1,6 @@
 use glam::{Vec3, Mat4, Vec2, vec3};
 
-use crate::{renderer_context::{RendererContext, BufferHandle}, buffer_resource::BufferResource, ray::Ray, color::Color};
+use crate::{renderer_context::{RendererContext, BufferHandle}, ray::Ray, color::Color};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -21,7 +21,7 @@ pub struct Camera {
     fov: f32,
     background: Color,
     data: CameraData,
-    buffer: BufferResource,
+    buffer: BufferHandle,
 }
 
 impl Camera {
@@ -34,7 +34,13 @@ impl Camera {
             _padding2: 0,
         };
 
-        let buffer = BufferResource::new(renderer, &data);
+        let buffer = renderer.new_buffer(
+            &wgpu::util::BufferInitDescriptor {
+                label: Some("Resource buffer"),
+                contents: bytemuck::bytes_of(&data),
+                usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
+            }
+        );
 
         let mut camera = Camera { 
             transform: Mat4::IDENTITY,
@@ -98,14 +104,18 @@ impl Camera {
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
-        self.buffer.update_buffer(renderer, &self.data);
+        renderer.update_buffer(self.buffer, bytemuck::bytes_of(&self.data));
     }
     
     pub fn binding_type(&self) -> wgpu::BindingType {
-        return self.buffer.binding_type()
+        wgpu::BindingType::Buffer {
+            ty: wgpu::BufferBindingType::Uniform,
+            has_dynamic_offset: false,
+            min_binding_size: None,
+        }
     }
 
     pub fn get_buffer(&self) -> BufferHandle {
-        self.buffer.get_buffer()
+        self.buffer
     }
 } 

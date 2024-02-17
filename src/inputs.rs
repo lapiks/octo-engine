@@ -17,14 +17,20 @@ pub struct Inputs {
     mouse_delta: Vec2,
 }
 
-impl Inputs {
-    pub fn new() -> Self {
+impl Default for Inputs {
+    fn default() -> Self {
         Self {
             mouse: HashMap::default(),
             keys: HashMap::default(),
             modifiers: Modifiers::default(),
             mouse_delta: Vec2::ZERO,
         }
+    }
+}
+
+impl Inputs {
+    pub fn new() -> Self {
+        Default::default()
     } 
 
     pub fn reset(&mut self) {

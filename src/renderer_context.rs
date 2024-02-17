@@ -127,28 +127,26 @@ impl<'a> Frame<'a> {
         }
     }
 
-    pub fn new_render_pass(&mut self) -> wgpu::RenderPass {
-        self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &self.view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            label: Some("Render pass"),
-            timestamp_writes: None,
-            occlusion_query_set: None,
-        })
-    }
-
     pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
         let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
         let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
 
-        let mut render_pass = self.new_render_pass();
+        let mut render_pass = self.encoder.begin_render_pass(
+            &wgpu::RenderPassDescriptor {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &self.view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                label: Some("Render pass"),
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            }
+        );
         render_pass.set_bind_group(0, &bind_group, &[]);
         render_pass.set_pipeline(&render_pipeline.pipeline);
 
@@ -159,10 +157,12 @@ impl<'a> Frame<'a> {
         let compute_pipeline = self.renderer.compute_pipelines.get(desc.pipeline).unwrap();
         let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
 
-        let mut cpass = self.encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
-            label: Some("Compute pass"),
-            timestamp_writes: None,
-        });
+        let mut cpass = self.encoder.begin_compute_pass(
+            &wgpu::ComputePassDescriptor {
+                label: Some("Compute pass"),
+                timestamp_writes: None,
+            }
+        );
 
         cpass.set_bind_group(0, bind_group, &[]);
         cpass.set_pipeline(&compute_pipeline.pipeline);
@@ -192,10 +192,12 @@ impl RendererContext {
         env_logger::init();
 
         // Instance
-        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
-            backends: wgpu::Backends::all(),
-            ..Default::default()
-        });
+        let instance = wgpu::Instance::new(
+            wgpu::InstanceDescriptor {
+                backends: wgpu::Backends::all(),
+                ..Default::default()
+            }
+        );
         
         // Surface
         let surface = unsafe { instance.create_surface(window) }.unwrap();

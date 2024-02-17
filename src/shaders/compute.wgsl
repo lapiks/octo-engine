@@ -1,14 +1,3 @@
-struct Sphere {
-    position: vec3<f32>,
-    radius: f32
-}
-
-struct Camera {
-    position: vec3<f32>,
-    size: vec2<f32>,
-    focal_length: f32,
-}
-
 struct Ray {
     origin: vec3<f32>,
     direction: vec3<f32>
@@ -16,6 +5,12 @@ struct Ray {
 
 fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
     return ray.origin + t * ray.direction;
+}
+
+struct Camera {
+    position: vec3<f32>,
+    size: vec2<f32>,
+    focal_length: f32,
 }
 
 @group(0) @binding(0) var world: texture_3d<u32>;

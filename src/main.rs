@@ -4,7 +4,6 @@ mod camera;
 mod time_step;
 mod game;
 mod system;
-mod buffer_resource;
 mod inputs;
 mod file_watcher;
 mod utils;
@@ -50,8 +49,8 @@ pub async fn run() {
     
     event_loop.run(move |event, _, control_flow| match event {
         Event::RedrawRequested(_) => {
-            game.update();
             game.hot_reload(&mut renderer);
+            game.update();
             game.prepare_rendering(&mut renderer);
 
             if let Some(mut frame) =  renderer.begin_frame() {

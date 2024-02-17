@@ -57,12 +57,17 @@ pub struct Game {
 
 impl Game {
     pub fn new(renderer: &mut RendererContext) -> Self {
-        let file_watcher = Some(FileWatcher::new("./src/shaders", Duration::from_secs(5))).unwrap().unwrap();
-        
-        let world = VoxelWorld::new(renderer);
-        
-        let inputs = Inputs::new();
+        let file_watcher = Some(
+            FileWatcher::new(
+                "./src/shaders", 
+                Duration::from_secs(5)
+            )
+        ).unwrap().unwrap();
 
+        let inputs = Inputs::new();
+        
+        // game datas
+        let world = VoxelWorld::new(renderer);
         let camera = Camera::new(
             renderer,
             vec3(0.0, 0.0, -1.0),
@@ -70,9 +75,9 @@ impl Game {
             1.0,
             PI / 4.0,
         );
-
         let globals = Globals::new(renderer);
 
+        // render texture
         let output_texture = renderer.new_texture(
             &wgpu::TextureDescriptor {
                 label: None,
@@ -242,7 +247,7 @@ impl System for Game {
         }
 
         self.world.set_voxel_at(255, &UVec3::new(8, 8, 8));
-        self.camera.set_position(Vec3::new(8.0, 8.0, 4.0));
+        self.camera.set_position(Vec3::new(8.0, 8.0, -8.0));
     }
 
     fn update(&mut self) {
@@ -277,6 +282,7 @@ impl System for Game {
         self.inputs.reset();
     }
 
+    /// Prepare resources for rendering
     fn prepare_rendering(&mut self, renderer: &mut RendererContext) {
         self.camera.update_buffer(renderer);
         self.world.update_texture(renderer);
