@@ -15,6 +15,7 @@ pub struct Inputs {
     keys: HashMap<KeyCode, bool>,
     modifiers: Modifiers,
     mouse_delta: Vec2,
+    mouse_wheel_delta: f32,
 }
 
 impl Default for Inputs {
@@ -24,6 +25,7 @@ impl Default for Inputs {
             keys: HashMap::default(),
             modifiers: Modifiers::default(),
             mouse_delta: Vec2::ZERO,
+            mouse_wheel_delta: 0.0,
         }
     }
 }
@@ -35,6 +37,7 @@ impl Inputs {
 
     pub fn reset(&mut self) {
         self.mouse_delta = Vec2::ZERO;
+        self.mouse_wheel_delta = 0.0;
     }
 
     pub fn on_mouse_move(&mut self, x: f32, y: f32) {
@@ -42,7 +45,7 @@ impl Inputs {
     }
 
     pub fn on_mouse_wheel(&mut self, delta: f32) {
-
+        self.mouse_wheel_delta += delta;
     }
 
     pub fn on_mouse_button_down(&mut self, button: MouseButton) {

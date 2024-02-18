@@ -84,8 +84,6 @@ pub async fn run() {
                         }
                     },
                 },
-                WindowEvent::CursorMoved { device_id, position } => {},
-                WindowEvent::MouseWheel { device_id, delta, phase } => {},
                 WindowEvent::MouseInput { device_id, state, button } => match state {
                     ElementState::Pressed => {
                         game.on_mouse_button_down(button);
@@ -120,8 +118,12 @@ pub async fn run() {
             DeviceEvent::MouseMotion { delta } => {
                 game.on_mouse_move(delta.0 as f32, delta.1 as f32);
             },
-            DeviceEvent::MouseWheel { .. } => {
-                //game.on_mouse_wheel(delta as f32);
+            DeviceEvent::MouseWheel { delta } => {
+                match delta {
+                    MouseScrollDelta::LineDelta(delta, _) => game.on_mouse_wheel(delta as f32),
+                    MouseScrollDelta::PixelDelta(_) => todo!(),
+                }
+                
             },
             _ => {}
         }

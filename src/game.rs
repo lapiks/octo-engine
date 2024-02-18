@@ -265,7 +265,7 @@ impl System for Game {
         let delta_time = self.time_step.tick();
         let speed = 5.0;
 
-        if self.inputs.get_key_down(KeyCode::KeyZ) {
+        if self.inputs.get_key_down(KeyCode::KeyW) {
             self.camera.translate(Vec3::Z * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyS) {
@@ -274,7 +274,7 @@ impl System for Game {
         if self.inputs.get_key_down(KeyCode::KeyD) {
             self.camera.translate(Vec3::X * delta_time * speed);
         }
-        if self.inputs.get_key_down(KeyCode::KeyQ) {
+        if self.inputs.get_key_down(KeyCode::KeyA) {
             self.camera.translate(Vec3::NEG_X * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::Space) {
