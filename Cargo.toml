@@ -6,9 +6,9 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winit = "0.28"
+winit = "0.29.10"
 pollster = "0.3"
-wgpu = "0.18"
+wgpu = "0.18.0"
 raw-window-handle = "0.5"
 env_logger = "0.10"
 thiserror = "1.0.50"
@@ -16,5 +16,6 @@ slotmap = "1.0.6"
 bytemuck = { version = "1.14", features = [ "derive" ] }
 glam = "0.24.2"
 notify = "6.1.1"
-egui = "0.24.1"
-egui-wgpu = "0.24.1"
+egui = "0.25.0"
+egui-wgpu = "0.25.0"
+egui-winit = "0.25.0"

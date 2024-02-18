@@ -2,7 +2,7 @@ use std::{time::Duration, path::Path, f32::consts::PI};
 
 use glam::{Vec3, Vec2, UVec3, vec3, vec2};
 use thiserror::Error;
-use winit::event::{VirtualKeyCode, MouseButton};
+use winit::{event::MouseButton, keyboard::KeyCode};
 
 use crate::{
     time_step::TimeStep, 
@@ -230,13 +230,24 @@ impl Game {
 impl System for Game {
     fn init(&mut self, renderer: &mut RendererContext) {
         self.render_shader = Game::create_shader(renderer, "src/shaders/render.wgsl");
+        self.render_pipeline = self.render_shader
+            .and_then(|shader| {
+                Some(Game::create_render_pipeline(
+                    renderer, 
+                    shader, 
+                    &self.globals
+                ))
+            });
         self.compute_shader = Game::create_shader(renderer,"src/shaders/compute.wgsl");
-        if let Some(render_shader) = self.render_shader {
-            self.render_pipeline = Some(Game::create_render_pipeline(renderer, render_shader, &self.globals));
-        }
-        if let Some(compute_shader) = self.compute_shader {
-            self.compute_pipeline = Some(Game::create_compute_pipeline(renderer, compute_shader, &self.globals, &self.camera));
-        }
+        self.compute_pipeline = self.compute_shader
+            .and_then(|shader| {
+                Some(Game::create_compute_pipeline(
+                    renderer, 
+                    shader, 
+                    &self.globals, 
+                    &self.camera
+                ))
+            });
 
         for z in 1..self.world.get_size().z-1 {
             for y in 1..self.world.get_size().y-1 {
@@ -254,22 +265,22 @@ impl System for Game {
         let delta_time = self.time_step.tick();
         let speed = 5.0;
 
-        if self.inputs.get_key_down(VirtualKeyCode::Z) {
+        if self.inputs.get_key_down(KeyCode::KeyZ) {
             self.camera.translate(Vec3::Z * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::S) {
+        if self.inputs.get_key_down(KeyCode::KeyS) {
             self.camera.translate(Vec3::NEG_Z * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::D) {
+        if self.inputs.get_key_down(KeyCode::KeyD) {
             self.camera.translate(Vec3::X * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::Q) {
+        if self.inputs.get_key_down(KeyCode::KeyQ) {
             self.camera.translate(Vec3::NEG_X * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::Space) {
+        if self.inputs.get_key_down(KeyCode::Space) {
             self.camera.translate(Vec3::Y * delta_time * speed);
         }
-        if self.inputs.get_key_down(VirtualKeyCode::LControl) {
+        if self.inputs.get_key_down(KeyCode::ControlLeft) {
             self.camera.translate(Vec3::NEG_Y * delta_time * speed);
         }
         if self.inputs.get_button_down(MouseButton::Left) {
@@ -344,24 +355,25 @@ impl System for Game {
                 &RenderPassDesc {
                 pipeline: self.render_pipeline.unwrap(),
                 bind_group: self.render_bind_group.unwrap(),
+                load_op: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
             });
             rpass.draw(0..3, 0..1);
         }
     }
 
-    fn on_key_down(&mut self, key: winit::event::VirtualKeyCode) {
+    fn on_key_down(&mut self, key: KeyCode) {
         self.inputs.on_key_down(key);
     }
 
-    fn on_key_up(&mut self, key: winit::event::VirtualKeyCode) {
+    fn on_key_up(&mut self, key: KeyCode) {
         self.inputs.on_key_up(key);
     }
 
-    fn on_mouse_button_down(&mut self, button: winit::event::MouseButton) {
+    fn on_mouse_button_down(&mut self, button: MouseButton) {
         self.inputs.on_mouse_button_down(button);
     }
 
-    fn on_mouse_button_up(&mut self, button: winit::event::MouseButton) {
+    fn on_mouse_button_up(&mut self, button: MouseButton) {
         self.inputs.on_mouse_button_up(button);
     }
 

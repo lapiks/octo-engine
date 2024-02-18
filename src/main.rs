@@ -13,21 +13,19 @@ mod ray;
 mod color;
 
 use game::Game;
-use gui::Gui;
+use gui::{run_ui, EguiRenderer};
 use renderer_context::{RendererContext, Resolution};
 
 use system::System;
 use winit::{
-    event::*,
-    event_loop::{ControlFlow, EventLoop},
-    window::WindowBuilder,
+    event::*, event_loop::EventLoop, keyboard::{Key, NamedKey}, window::WindowBuilder
 };
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
 
 pub async fn run() {
-    let event_loop = EventLoop::new();
+    let event_loop = EventLoop::new().unwrap();
     let window = WindowBuilder::new()
         .with_title("Octo Engine")
         .with_inner_size(winit::dpi::PhysicalSize {
@@ -43,24 +41,80 @@ pub async fn run() {
     ).await;
 
     
-    let mut gui = Gui::new(&renderer);
+    let mut gui_renderer = EguiRenderer::new(&renderer, &window);
     let mut game = Game::new(&mut renderer);
     game.init(&mut renderer);
     
-    event_loop.run(move |event, _, control_flow| match event {
-        Event::RedrawRequested(_) => {
-            game.hot_reload(&mut renderer);
-            game.update();
-            game.prepare_rendering(&mut renderer);
-
-            if let Some(mut frame) =  renderer.begin_frame() {
-                game.render(&mut frame);
-                gui.render(&mut frame);
-                renderer.commit_frame(frame);
-            }
-        }
-        Event::MainEventsCleared => {
+    let _ = event_loop.run(move |event, ewlt| match event {
+        Event::WindowEvent { 
+            window_id, 
+            event 
+        } if window_id == window.id() => {
             window.request_redraw();
+            gui_renderer.handle_input(&window, &event);
+            match event {
+                WindowEvent::Resized(physical_size) => {
+                    game.resize(&mut renderer, physical_size.width, physical_size.height);
+                },
+                WindowEvent::CloseRequested
+                | WindowEvent::KeyboardInput {
+                    event:
+                        KeyEvent {
+                            logical_key: Key::Named(NamedKey::Escape),
+                            ..
+                        },
+                    ..
+                } => ewlt.exit(),
+                WindowEvent::KeyboardInput { device_id, event, is_synthetic } => match event.state {
+                    ElementState::Pressed => {
+                        match event.physical_key {
+                            winit::keyboard::PhysicalKey::Code(key) => {
+                                game.on_key_down(key);
+                            },
+                            winit::keyboard::PhysicalKey::Unidentified(_) => todo!(),
+                        }
+                          
+                    },
+                    ElementState::Released => {
+                        match event.physical_key {
+                            winit::keyboard::PhysicalKey::Code(key) => {
+                                game.on_key_up(key);
+                            },
+                            winit::keyboard::PhysicalKey::Unidentified(_) => todo!(),
+                        }
+                    },
+                },
+                WindowEvent::CursorMoved { device_id, position } => {},
+                WindowEvent::MouseWheel { device_id, delta, phase } => {},
+                WindowEvent::MouseInput { device_id, state, button } => match state {
+                    ElementState::Pressed => {
+                        game.on_mouse_button_down(button);
+                    },
+                    ElementState::Released => {
+                        game.on_mouse_button_up(button);
+                    },
+                },
+                WindowEvent::ScaleFactorChanged { scale_factor, inner_size_writer } => {
+                    //game.resize(&mut renderer, new_inner_size.width, new_inner_size.height);
+                },
+                WindowEvent::RedrawRequested => {
+                    game.hot_reload(&mut renderer);
+                    game.update();
+                    game.prepare_rendering(&mut renderer);
+
+                    if let Some(mut frame) =  renderer.begin_frame() {
+                        game.render(&mut frame);
+                        gui_renderer.render(
+                            &renderer,
+                            &mut frame, 
+                            &window,
+                            |ui| run_ui(ui)
+                        );
+                        renderer.commit_frame(frame);
+                    }
+                },
+                _ => {}
+            };
         }
         Event::DeviceEvent { event, .. } => match event {
             DeviceEvent::MouseMotion { delta } => {
@@ -71,39 +125,6 @@ pub async fn run() {
             },
             _ => {}
         }
-        Event::WindowEvent {
-            ref event,
-            window_id,
-        } if window_id == window.id() => match event {
-            WindowEvent::Resized(physical_size) => {
-                game.resize(&mut renderer, physical_size.width, physical_size.height);
-            }
-            WindowEvent::ScaleFactorChanged { new_inner_size, .. } => {
-                game.resize(&mut renderer, new_inner_size.width, new_inner_size.height);
-            },
-            WindowEvent::KeyboardInput { input, .. } => match input.state {
-                ElementState::Pressed => {
-                    if let Some(keycode) = input.virtual_keycode {
-                        game.on_key_down(keycode);
-                    }
-                },
-                ElementState::Released => {
-                    if let Some(keycode) = input.virtual_keycode {
-                        game.on_key_up(keycode);
-                    }
-                },
-            },
-            WindowEvent::MouseInput { state, button, .. } => match state {
-                ElementState::Pressed => {
-                    game.on_mouse_button_down(*button);
-                },
-                ElementState::Released => {
-                    game.on_mouse_button_up(*button);
-                },
-            },
-            WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-            _ => {}
-        },
         _ => {}
     });
 }

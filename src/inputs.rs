@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use glam::Vec2;
-use winit::event::{VirtualKeyCode, MouseButton};
+use winit::{event::MouseButton, keyboard::KeyCode};
 
 #[derive(Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub struct Modifiers {
@@ -12,7 +12,7 @@ pub struct Modifiers {
 
 pub struct Inputs {
     mouse: HashMap<MouseButton, bool>,
-    keys: HashMap<VirtualKeyCode, bool>,
+    keys: HashMap<KeyCode, bool>,
     modifiers: Modifiers,
     mouse_delta: Vec2,
 }
@@ -53,15 +53,15 @@ impl Inputs {
         self.mouse.insert(button, false);
     }
 
-    pub fn on_key_down(&mut self, keycode: VirtualKeyCode) {
+    pub fn on_key_down(&mut self, keycode: KeyCode) {
         self.keys.insert(keycode, true);
     }
 
-    pub fn on_key_up(&mut self, keycode: VirtualKeyCode) {
+    pub fn on_key_up(&mut self, keycode: KeyCode) {
         self.keys.insert(keycode, false);
     }
 
-    pub fn get_key_down(&self, keycode: VirtualKeyCode) -> bool {
+    pub fn get_key_down(&self, keycode: KeyCode) -> bool {
         *self.keys.get(&keycode).unwrap_or(&false)
     }
 

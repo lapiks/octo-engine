@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
-use wgpu::{BindGroupLayoutEntry, util::DeviceExt, ImageDataLayout, Extent3d};
+use wgpu::{util::DeviceExt, BindGroupLayoutEntry, Color, Extent3d, ImageDataLayout};
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
@@ -51,7 +51,7 @@ pub struct PipelineDesc<'a> {
 }
 
 pub struct RenderPass<'a> {
-    pass: wgpu::RenderPass<'a>,
+    pub pass: wgpu::RenderPass<'a>,
 }
 
 impl<'a> RenderPass<'a> {
@@ -89,6 +89,7 @@ pub struct ComputePassDesc {
 pub struct RenderPassDesc {
     pub bind_group: BindGroupHandle,
     pub pipeline: RenderPipelineHandle,
+    pub load_op: wgpu::LoadOp<Color>,
 }
 
 struct Texture {
@@ -106,6 +107,7 @@ pub struct Binding {
     pub resource: BindingResource,
 }
 
+/// Permits render to the current surface texture
 pub struct Frame<'a> {
     renderer: &'a RendererContext,
     surface_texture: wgpu::SurfaceTexture,
@@ -127,17 +129,14 @@ impl<'a> Frame<'a> {
         }
     }
 
-    pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
-        let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
-        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
-
-        let mut render_pass = self.encoder.begin_render_pass(
+    pub fn new_render_pass(&mut self, load_op: wgpu::LoadOp<wgpu::Color>) -> wgpu::RenderPass {
+        self.encoder.begin_render_pass(
             &wgpu::RenderPassDescriptor {
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &self.view,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::GREEN),
+                        load: load_op,
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -146,7 +145,14 @@ impl<'a> Frame<'a> {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             }
-        );
+        )
+    }
+
+    pub fn begin_render_pass(&mut self, desc: &RenderPassDesc) -> RenderPass {
+        let render_pipeline = self.renderer.render_pipelines.get(desc.pipeline).unwrap();
+        let bind_group = self.renderer.bind_groups.get(desc.bind_group).unwrap();
+
+        let mut render_pass = self.new_render_pass(desc.load_op);
         render_pass.set_bind_group(0, &bind_group, &[]);
         render_pass.set_pipeline(&render_pipeline.pipeline);
 
@@ -168,6 +174,14 @@ impl<'a> Frame<'a> {
         cpass.set_pipeline(&compute_pipeline.pipeline);
         
         ComputePass::new(cpass)
+    }
+    
+    pub fn view(&self) -> &wgpu::TextureView {
+        &self.view
+    }
+
+    pub fn encoder_mut(&mut self) -> &mut wgpu::CommandEncoder {
+        &mut self.encoder
     }
 }
 
@@ -260,8 +274,12 @@ impl RendererContext {
         }
     }
 
-    pub fn get_device(&self) -> &wgpu::Device {
+    pub fn device(&self) -> &wgpu::Device {
         &self.device
+    }
+
+    pub fn queue(&self) -> &wgpu::Queue {
+        &self.queue
     }
 
     pub fn resize(&mut self, resolution: Resolution) {
