@@ -66,8 +66,9 @@ impl EguiRenderer {
                 .update_texture(renderer.device(), renderer.queue(), *id, &image_delta);
         }
 
+        let size = window.inner_size();
         let screen_desc = ScreenDescriptor {
-            size_in_pixels: [800, 600],
+            size_in_pixels: [size.width, size.height],
             pixels_per_point: full_output.pixels_per_point,
         };
 
