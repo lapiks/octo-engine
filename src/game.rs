@@ -263,16 +263,16 @@ impl System for Game {
         let speed = 5.0;
 
         if self.inputs.get_key_down(KeyCode::KeyW) {
-            self.camera.transform.translate(Vec3::Z * delta_time * speed);
+            self.camera.transform.translate(self.camera.transform.forward() * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyS) {
-            self.camera.transform.translate(Vec3::NEG_Z * delta_time * speed);
+            self.camera.transform.translate(self.camera.transform.back() * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyD) {
-            self.camera.transform.translate(Vec3::X * delta_time * speed);
+            self.camera.transform.translate(self.camera.transform.right() * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyA) {
-            self.camera.transform.translate(Vec3::NEG_X * delta_time * speed);
+            self.camera.transform.translate(self.camera.transform.left() * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::Space) {
             self.camera.transform.translate(Vec3::Y * delta_time * speed);
@@ -283,7 +283,9 @@ impl System for Game {
         if self.inputs.get_key_down(KeyCode::KeyE) {
             self.camera.transform.rotate_y(delta_time * speed);
         }
-
+        if self.inputs.get_key_down(KeyCode::KeyQ) {
+            self.camera.transform.rotate_y(-delta_time * speed);
+        }
 
         self.inputs.reset();
     }

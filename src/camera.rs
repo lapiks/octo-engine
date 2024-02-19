@@ -5,10 +5,7 @@ use crate::{renderer_context::{BufferHandle, RendererContext}, transform::Transf
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 struct CameraData {
-    position: [f32; 3],
-    _padding: u32,
-    direction: [f32; 3],
-    _padding2: u32,
+    model: [[f32; 4]; 4],
     size: [f32; 2],
     _padding3: u64,
 }
@@ -22,10 +19,7 @@ pub struct Camera {
 impl Camera {
     pub fn new(renderer: &mut RendererContext, size: Vec2) -> Self {
         let data = CameraData {
-            position: [0.0, 0.0, 0.0],
-            _padding: 0,
-            direction: [0.0, 0.0, 1.0],
-            _padding2: 0,
+            model: Mat4::IDENTITY.to_cols_array_2d(),
             size: size.to_array(),
             _padding3: 0,
         };
@@ -56,8 +50,7 @@ impl Camera {
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
-        self.data.position = self.transform.position.to_array();
-        self.data.direction = self.transform.forward().to_array();
+        self.data.model = self.transform.compute_matrix().to_cols_array_2d();
 
         renderer.update_buffer(self.buffer, bytemuck::bytes_of(&self.data));
     }

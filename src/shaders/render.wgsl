@@ -14,8 +14,7 @@ fn vs_main(@builtin(vertex_index) vertex_idx : u32) -> VertexOutput {
 }
 
 struct Camera {
-    position: vec3<f32>,
-    direction: vec3<f32>,
+    model: mat4x4<f32>,
     size: vec2<f32>,
 }
 

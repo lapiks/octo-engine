@@ -8,8 +8,7 @@ fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
 }
 
 struct Camera {
-    position: vec3<f32>,
-    direction: vec3<f32>,
+    model: mat4x4<f32>,
     size: vec2<f32>,
 }
 
@@ -22,11 +21,13 @@ struct Camera {
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     let pixel_pos = vec2(f32(global_id.x), f32(global_id.y));
     let screen_pos = (pixel_pos / camera.size) * 2.0 - 1.0;
-	let camera_plane_u = vec3(1.0, 0.0, 0.0);
-	let camera_plane_v = vec3(0.0, 1.0, 0.0) * camera.size.y / camera.size.x;
-	let ray_dir = camera.direction + screen_pos.x * camera_plane_u + screen_pos.y * camera_plane_v;
+	let camera_plane_u = vec3(camera.model[0][0], camera.model[0][1], camera.model[0][2]);
+	let camera_plane_v = vec3(camera.model[1][0], camera.model[1][1], camera.model[1][2]) * camera.size.y / camera.size.x;
+    let camera_direction = vec3(camera.model[2][0], camera.model[2][1], camera.model[2][2]);
+    let camera_position = vec3(camera.model[3][0], camera.model[3][1], camera.model[3][2]);
+	let ray_dir = camera_direction + screen_pos.x * camera_plane_u + screen_pos.y * camera_plane_v;
     
-    let ray = Ray(camera.position, ray_dir);
+    let ray = Ray(camera_position, ray_dir);
 
     var map_pos = vec3(floor(ray.origin));
     let delta_dist = abs(vec3(length(ray.direction)) / ray.direction);
