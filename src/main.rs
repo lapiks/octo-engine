@@ -13,7 +13,7 @@ mod ray;
 mod color;
 mod transform;
 mod app;
-mod gui;
+mod editor;
 
 use app::App;
 

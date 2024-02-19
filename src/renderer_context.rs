@@ -36,12 +36,12 @@ pub type RenderPipelineHandle = RenderPipelineId;
 pub type ComputePipelineHandle = ComputePipelineId;
 pub type BindGroupHandle = BindGroupId;
 
-struct RenderPipeline {
+pub struct RenderPipeline {
     pub pipeline: wgpu::RenderPipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
 
-struct ComputePipeline {
+pub struct ComputePipeline {
     pub pipeline: wgpu::ComputePipeline,
     pub bind_group_layout: wgpu::BindGroupLayout,
 }
@@ -93,7 +93,7 @@ pub struct RenderPassDesc {
     pub load_op: wgpu::LoadOp<Color>,
 }
 
-struct Texture {
+pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView, 
 }
@@ -524,6 +524,10 @@ impl RendererContext {
         else {
             print!("Unknown texture")
         }
+    }
+
+    pub fn get_texture(&self, handle: TextureHandle) -> Option<&Texture> {
+        self.textures.get(handle)
     }
 
     pub fn begin_frame(&self) -> Option<Frame> {

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use egui_wgpu::ScreenDescriptor;
 use winit::window::Window;
 
-use crate::renderer_context::{Frame, RendererContext};
+use crate::renderer_context::{Frame, RendererContext, TextureHandle};
 
 
 pub struct EguiRenderer {
@@ -91,5 +91,15 @@ impl EguiRenderer {
         for x in &full_output.textures_delta.free {
             self.egui_renderer.free_texture(x)
         }
+    }
+
+    pub fn register_native_texture(&mut self, renderer: &RendererContext, game_texture: TextureHandle) -> Option<egui::TextureId> {
+        renderer.get_texture(game_texture).and_then(|texture| {
+            Some(self.egui_renderer.register_native_texture(
+                renderer.device(), 
+                &texture.view, 
+                wgpu::FilterMode::Nearest
+            ))
+        })
     }
 }

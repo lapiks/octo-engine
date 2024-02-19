@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use winit::{
-    event::*, event_loop::EventLoop, keyboard::{Key, NamedKey}, window::{Window, WindowBuilder}
+    event::*, event_loop::EventLoop, keyboard::{Key, KeyCode, NamedKey}, window::{Window, WindowBuilder}
 };
 
-use crate::{egui_renderer::EguiRenderer, game::Game, gui::Gui, renderer_context::RendererContext, system::System};
+use crate::{egui_renderer::EguiRenderer, game::Game, editor::Editor, renderer_context::RendererContext, system::System};
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
@@ -12,7 +12,8 @@ const INITIAL_HEIGHT: u32 = 1080;
 pub struct App {
     pub window: Arc<Window>,
     pub game: Game,
-    pub gui: Gui,
+    pub editor: Editor,
+    pub show_editor: bool,
 }
 
 impl App {
@@ -23,7 +24,8 @@ impl App {
         Self {
             window,
             game,
-            gui: Gui::default(),
+            editor: Editor::default(),
+            show_editor: true,
         }
     }
 
@@ -69,6 +71,9 @@ impl App {
                         ElementState::Pressed => {
                             match event.physical_key {
                                 winit::keyboard::PhysicalKey::Code(key) => {
+                                    if key == KeyCode::F1 {
+                                        app.show_editor = !app.show_editor;
+                                    }
                                     app.game.on_key_down(key);
                                 },
                                 winit::keyboard::PhysicalKey::Unidentified(_) => todo!(),
@@ -100,14 +105,17 @@ impl App {
                         app.game.update();
                         app.game.prepare_rendering(&mut renderer);
     
-                        if let Some(mut frame) =  renderer.begin_frame() {
+                        if let Some(mut frame) = renderer.begin_frame() {
                             app.game.render(&mut frame);
-                            egui_renderer.render(
-                                &renderer,
-                                &mut frame, 
-                                &window,
-                                |ui| app.run_ui(ui)
-                            );
+                            if app.show_editor {
+                                let game_texture = egui_renderer.register_native_texture(&renderer, app.game.game_texture());
+                                egui_renderer.render(
+                                    &renderer,
+                                    &mut frame, 
+                                    &window,
+                                    |ui| app.run_ui(ui, game_texture)
+                                );
+                            }
                             renderer.commit_frame(frame);
                         }
                     },
@@ -131,7 +139,7 @@ impl App {
         });
     }
 
-    pub fn run_ui(&mut self, ctx: &egui::Context) {
-        self.gui.run_ui(ctx);
+    pub fn run_ui(&mut self, ctx: &egui::Context, game_texture: Option<egui::TextureId>) {
+        self.editor.run_ui(ctx, game_texture);
     }
 }

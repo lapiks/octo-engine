@@ -13,7 +13,7 @@ struct Camera {
 }
 
 @group(0) @binding(0) var world: texture_3d<u32>;
-@group(0) @binding(1) var output_texture: texture_storage_2d<rgba8uint, write>;
+@group(0) @binding(1) var output_texture: texture_storage_2d<rgba8unorm, write>;
 @group(0) @binding(2) var<uniform> camera : Camera;
 
 @compute
@@ -48,21 +48,21 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 		map_pos += vec3<f32>(mask) * ray_step;
     }
 
-    var color = vec3(255u);
+    var color = vec3(1.0);
     if (!hit) {
-        color = vec3(0u);
+        color = vec3(0.0);
     }
     else {
         if (mask.x) {
-		    color = vec3(128u);
+		    color = vec3(0.5);
         }
         if (mask.y) {
-            color = vec3(255u);
+            color = vec3(1.0);
         }
         if (mask.z) {
-            color = vec3(192u);
+            color = vec3(0.75);
         }
     }
 	
-    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<u32>(color, 256u));
+    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<f32>(color, 1.0));
 }

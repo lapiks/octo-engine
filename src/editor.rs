@@ -4,9 +4,10 @@ use egui_dock::{AllowedSplits, DockArea, DockState, NodeIndex, Style, SurfaceInd
 pub struct GuiContext {
     pub style: Option<Style>,
     open_tabs: HashSet<String>,
+    game_texture: Option<egui::TextureId>,
 }
 
-pub struct Gui {
+pub struct Editor {
     context: GuiContext,
     tree: DockState<String>,
 }
@@ -62,11 +63,18 @@ impl GuiContext {
     }
 
     fn viewport(&mut self, ui: &mut Ui) {
-        
+        if let Some(texture) = self.game_texture {
+            ui.image(
+                (texture, ui.available_size())
+            );
+        }
+        else {
+
+        }        
     }
 }
 
-impl Default for Gui {
+impl Default for Editor {
     fn default() -> Self {
         let mut dock_state = DockState::new(
             vec!["Viewport".to_owned()]
@@ -99,6 +107,7 @@ impl Default for Gui {
         let context = GuiContext {
             style: None,
             open_tabs,
+            game_texture: None,
         };
 
         Self {
@@ -108,8 +117,9 @@ impl Default for Gui {
     }
 }
 
-impl Gui {
-    pub fn run_ui(&mut self, ctx: &egui::Context) {
+impl Editor {
+    pub fn run_ui(&mut self, ctx: &egui::Context, game_texture: Option<egui::TextureId>) {
+        self.context.game_texture = game_texture;
         TopBottomPanel::top("egui_dock::MenuBar").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("View", |ui| {
