@@ -9,8 +9,8 @@ fn ray_at(ray: Ray, t: f32) -> vec3<f32> {
 
 struct Camera {
     position: vec3<f32>,
+    direction: vec3<f32>,
     size: vec2<f32>,
-    focal_length: f32,
 }
 
 @group(0) @binding(0) var world: texture_3d<u32>;
@@ -20,13 +20,13 @@ struct Camera {
 @compute
 @workgroup_size(1)
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
-    let ratio = camera.size.x / camera.size.y;
-    let viewport = vec2(2.0 * ratio, 2.0);
     let pixel_pos = vec2(f32(global_id.x), f32(global_id.y));
-    var uvw = vec3((pixel_pos / camera.size) * viewport.y - 1.0, camera.focal_length);
-    uvw.x *= ratio;
-
-    let ray = Ray(camera.position, uvw);
+    let screen_pos = (pixel_pos / camera.size) * 2.0 - 1.0;
+	let camera_plane_u = vec3(1.0, 0.0, 0.0);
+	let camera_plane_v = vec3(0.0, 1.0, 0.0) * camera.size.y / camera.size.x;
+	let ray_dir = camera.direction + screen_pos.x * camera_plane_u + screen_pos.y * camera_plane_v;
+    
+    let ray = Ray(camera.position, ray_dir);
 
     var map_pos = vec3(floor(ray.origin));
     let delta_dist = abs(vec3(length(ray.direction)) / ray.direction);
@@ -63,6 +63,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         }
     }
 	
-
     textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<u32>(color, 256u));
 }

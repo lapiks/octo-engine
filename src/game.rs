@@ -1,6 +1,6 @@
-use std::{time::Duration, path::Path, f32::consts::PI};
+use std::{time::Duration, path::Path};
 
-use glam::{Vec3, Vec2, UVec3, vec3, vec2};
+use glam::{Vec3, Vec2, UVec3, vec2};
 use thiserror::Error;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
@@ -70,10 +70,7 @@ impl Game {
         let world = VoxelWorld::new(renderer);
         let camera = Camera::new(
             renderer,
-            vec3(0.0, 0.0, -1.0),
             vec2(800.0, 600.0),
-            1.0,
-            PI / 4.0,
         );
         let globals = Globals::new(renderer);
 
@@ -258,7 +255,7 @@ impl System for Game {
         }
 
         self.world.set_voxel_at(255, &UVec3::new(8, 8, 8));
-        self.camera.set_position(Vec3::new(8.0, 8.0, -8.0));
+        self.camera.set_position(Vec3::new(0.0, 0.0, -8.0));
     }
 
     fn update(&mut self) {
@@ -282,12 +279,6 @@ impl System for Game {
         }
         if self.inputs.get_key_down(KeyCode::ControlLeft) {
             self.camera.translate(Vec3::NEG_Y * delta_time * speed);
-        }
-        if self.inputs.get_button_down(MouseButton::Left) {
-            let ray = self.camera.ray_for_pixel(
-                self.camera.size().x / 2.0, 
-                self.camera.size().y / 2.0
-            );
         }
 
         self.inputs.reset();
