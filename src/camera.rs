@@ -1,6 +1,6 @@
 use glam::{Mat4, Vec2, Vec3};
 
-use crate::renderer_context::{RendererContext, BufferHandle};
+use crate::{renderer_context::{BufferHandle, RendererContext}, transform::Transform};
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
@@ -14,7 +14,7 @@ struct CameraData {
 }
 
 pub struct Camera {
-    transform: Mat4,
+    pub transform: Transform,
     data: CameraData,
     buffer: BufferHandle,
 }
@@ -39,7 +39,7 @@ impl Camera {
         );
 
         let mut camera = Camera { 
-            transform: Mat4::IDENTITY,
+            transform: Transform::IDENTITY,
             data, 
             buffer,
         };
@@ -51,23 +51,13 @@ impl Camera {
         self.data.size = size.to_array();
     }
 
-    pub fn set_position(&mut self, pos: Vec3) {
-        self.transform.w_axis.x = pos.x;
-        self.transform.w_axis.y = pos.y;
-        self.transform.w_axis.z = pos.z;
-    }
-
-    pub fn translate(&mut self, v: Vec3) {        
-        self.transform = Mat4::from_translation(v) * self.transform;
-    }
-
     pub fn size(&self) -> Vec2 {
         Vec2::from_array(self.data.size)
     }
 
     pub fn update_buffer(&mut self, renderer: &mut RendererContext) {
-        let (_, _, tr) = self.transform.to_scale_rotation_translation();
-        self.data.position = tr.to_array();
+        self.data.position = self.transform.position.to_array();
+        self.data.direction = self.transform.forward().to_array();
 
         renderer.update_buffer(self.buffer, bytemuck::bytes_of(&self.data));
     }

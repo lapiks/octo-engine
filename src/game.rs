@@ -255,7 +255,7 @@ impl System for Game {
         }
 
         self.world.set_voxel_at(255, &UVec3::new(8, 8, 8));
-        self.camera.set_position(Vec3::new(0.0, 0.0, -8.0));
+        self.camera.transform.position = Vec3::new(0.0, 0.0, -8.0);
     }
 
     fn update(&mut self) {
@@ -263,23 +263,27 @@ impl System for Game {
         let speed = 5.0;
 
         if self.inputs.get_key_down(KeyCode::KeyW) {
-            self.camera.translate(Vec3::Z * delta_time * speed);
+            self.camera.transform.translate(Vec3::Z * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyS) {
-            self.camera.translate(Vec3::NEG_Z * delta_time * speed);
+            self.camera.transform.translate(Vec3::NEG_Z * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyD) {
-            self.camera.translate(Vec3::X * delta_time * speed);
+            self.camera.transform.translate(Vec3::X * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyA) {
-            self.camera.translate(Vec3::NEG_X * delta_time * speed);
+            self.camera.transform.translate(Vec3::NEG_X * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::Space) {
-            self.camera.translate(Vec3::Y * delta_time * speed);
+            self.camera.transform.translate(Vec3::Y * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::ControlLeft) {
-            self.camera.translate(Vec3::NEG_Y * delta_time * speed);
+            self.camera.transform.translate(Vec3::NEG_Y * delta_time * speed);
         }
+        if self.inputs.get_key_down(KeyCode::KeyE) {
+            self.camera.transform.rotate_y(delta_time * speed);
+        }
+
 
         self.inputs.reset();
     }
