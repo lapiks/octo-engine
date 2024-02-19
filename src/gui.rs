@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use egui::TopBottomPanel;
 use egui_wgpu::ScreenDescriptor;
 use winit::window::Window;
 
@@ -93,18 +94,50 @@ impl EguiRenderer {
     }
 }
 
-pub fn run_ui(ui: &egui::Context) {
-    egui::Window::new("Editor")
-        // .vscroll(true)
-        .default_open(true)
-        .max_width(1000.0)
-        .max_height(800.0)
-        .default_width(800.0)
-        .resizable(true)
-        .anchor(egui::Align2::LEFT_TOP, [0.0, 0.0])
-        .show(&ui, |ui| {
-            if ui.add(egui::Button::new("Click me")).clicked() {
-                println!("PRESSED")
-            }
-        });
+pub fn run_ui(ctx: &egui::Context) {
+    // TopBottomPanel::top("egui_dock::MenuBar").show(ctx, |ui| {
+    //     egui::menu::bar(ui, |ui| {
+    //         ui.menu_button("View", |ui| {
+    //             // allow certain tabs to be toggled
+    //             for tab in &["File Browser", "Asset Manager"] {
+    //                 if ui
+    //                     .selectable_label(self.context.open_tabs.contains(*tab), *tab)
+    //                     .clicked()
+    //                 {
+    //                     if let Some(index) = self.tree.find_tab(&tab.to_string()) {
+    //                         self.tree.remove_tab(index);
+    //                         self.context.open_tabs.remove(*tab);
+    //                     } else {
+    //                         self.tree[SurfaceIndex::main()]
+    //                             .push_to_focused_leaf(tab.to_string());
+    //                     }
+
+    //                     ui.close_menu();
+    //                 }
+    //             }
+    //         });
+    //     })
+    // });
+    // CentralPanel::default()
+    //     // When displaying a DockArea in another UI, it looks better
+    //     // to set inner margins to 0.
+    //     .frame(Frame::central_panel(&ctx.style()).inner_margin(0.))
+    //     .show(ctx, |ui| {
+    //         let style = self
+    //             .context
+    //             .style
+    //             .get_or_insert(Style::from_egui(ui.style()))
+    //             .clone();
+
+    //         DockArea::new(&mut self.tree)
+    //             .style(style)
+    //             .show_close_buttons(self.context.show_close_buttons)
+    //             .show_add_buttons(self.context.show_add_buttons)
+    //             .draggable_tabs(self.context.draggable_tabs)
+    //             .show_tab_name_on_hover(self.context.show_tab_name_on_hover)
+    //             .allowed_splits(self.context.allowed_splits)
+    //             .show_window_close_buttons(self.context.show_window_close)
+    //             .show_window_collapse_buttons(self.context.show_window_collapse)
+    //             .show_inside(ui, &mut self.context);
+    //     });
 }
