@@ -176,10 +176,6 @@ impl<'a> Frame<'a> {
         
         ComputePass::new(cpass)
     }
-    
-    pub fn view(&self) -> &wgpu::TextureView {
-        &self.view
-    }
 
     pub fn encoder_mut(&mut self) -> &mut wgpu::CommandEncoder {
         &mut self.encoder

@@ -1,4 +1,4 @@
-use glam::{Mat4, Vec2, Vec3};
+use glam::{Mat4, Vec2};
 
 use crate::{renderer_context::{BufferHandle, RendererContext}, transform::Transform};
 
