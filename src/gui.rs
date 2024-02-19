@@ -1,4 +1,6 @@
-use egui_wgpu::renderer::ScreenDescriptor;
+use std::sync::Arc;
+
+use egui_wgpu::ScreenDescriptor;
 use winit::window::Window;
 
 use crate::renderer_context::{Frame, RendererContext};
@@ -11,7 +13,7 @@ pub struct EguiRenderer {
 }
 
 impl EguiRenderer {
-    pub fn new(renderer: &RendererContext, window: &Window) -> Self {
+    pub fn new(renderer: &RendererContext, window: Arc<Window>) -> Self {
         let egui_renderer = egui_wgpu::Renderer::new(
             renderer.device(), 
             wgpu::TextureFormat::Bgra8UnormSrgb,

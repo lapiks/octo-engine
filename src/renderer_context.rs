@@ -1,8 +1,9 @@
-use std::ops::Range;
+use std::{ops::Range, sync::Arc};
 
 use slotmap::{SlotMap, new_key_type};
 use thiserror::Error;
 use wgpu::{util::DeviceExt, BindGroupLayoutEntry, Color, Extent3d, ImageDataLayout};
+use winit::window::Window;
 
 #[derive(Error, Debug)]
 pub enum RendererContextError {
@@ -186,7 +187,7 @@ impl<'a> Frame<'a> {
 }
 
 pub struct RendererContext {
-    surface: wgpu::Surface,
+    surface: wgpu::Surface<'static>,
     surface_conf: wgpu::SurfaceConfiguration,
     device: wgpu::Device,
     queue: wgpu::Queue,
@@ -200,21 +201,18 @@ pub struct RendererContext {
 }
 
 impl RendererContext {
-    pub async fn new<
-    W: raw_window_handle::HasRawWindowHandle + raw_window_handle::HasRawDisplayHandle,
->(window: &W, resolution: Resolution) -> Self {
+    pub async fn new(window: Arc<Window>) -> Self {
+        let mut size = window.inner_size();
+        size.width = size.width.max(1);
+        size.height = size.height.max(1);
+
         env_logger::init();
 
         // Instance
-        let instance = wgpu::Instance::new(
-            wgpu::InstanceDescriptor {
-                backends: wgpu::Backends::all(),
-                ..Default::default()
-            }
-        );
+        let instance = wgpu::Instance::default();
         
         // Surface
-        let surface = unsafe { instance.create_surface(window) }.unwrap();
+        let surface = instance.create_surface(window.clone()).unwrap();
         
         // Adapter
         let adapter = instance.request_adapter(
@@ -228,10 +226,10 @@ impl RendererContext {
         // Device and queue
         let (device, queue) = adapter.request_device(
             &wgpu::DeviceDescriptor {
-                features: wgpu::Features::empty(),
+                required_features: wgpu::Features::empty(),
                 // WebGL doesn't support all of wgpu's features, so if
                 // we're building for the web we'll have to disable some.
-                limits: if cfg!(target_arch = "wasm32") {
+                required_limits: if cfg!(target_arch = "wasm32") {
                     wgpu::Limits::downlevel_webgl2_defaults()
                 } else {
                     wgpu::Limits::default()
@@ -241,22 +239,9 @@ impl RendererContext {
             None, // Trace path
         ).await.unwrap();
 
-        let surface_caps = surface.get_capabilities(&adapter);
-
-        let surface_format = surface_caps.formats.iter()
-            .copied()
-            .find(|f| f.is_srgb())            
-            .unwrap_or(surface_caps.formats[0]);
-
-        let surface_conf = wgpu::SurfaceConfiguration {
-            usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
-            format: surface_format,
-            width: resolution.width,
-            height: resolution.height,
-            present_mode: surface_caps.present_modes[0],
-            alpha_mode: surface_caps.alpha_modes[0],
-            view_formats: vec![],
-        };
+        let surface_conf = surface
+            .get_default_config(&adapter, size.width, size.height)
+            .unwrap();
         surface.configure(&device, &surface_conf);
 
         Self {
@@ -264,7 +249,10 @@ impl RendererContext {
             surface_conf,
             device,
             queue,
-            resolution,
+            resolution: Resolution {
+                width: size.width,
+                height: size.height,
+            },
             textures: SlotMap::default(),
             buffers: SlotMap::default(),
             shaders: SlotMap::default(),

@@ -13,9 +13,11 @@ mod ray;
 mod color;
 mod transform;
 
+use std::sync::Arc;
+
 use game::Game;
 use gui::{run_ui, EguiRenderer};
-use renderer_context::{RendererContext, Resolution};
+use renderer_context::RendererContext;
 
 use system::System;
 use winit::{
@@ -27,22 +29,20 @@ const INITIAL_HEIGHT: u32 = 1080;
 
 pub async fn run() {
     let event_loop = EventLoop::new().unwrap();
-    let window = WindowBuilder::new()
-        .with_title("Octo Engine")
-        .with_inner_size(winit::dpi::PhysicalSize {
-            width: INITIAL_WIDTH,
-            height: INITIAL_HEIGHT,
-        })
-        .build(&event_loop)
-        .unwrap();
+    let window = Arc::new(
+        WindowBuilder::new()
+            .with_title("Octo Engine")
+            .with_inner_size(winit::dpi::PhysicalSize {
+                width: INITIAL_WIDTH,
+                height: INITIAL_HEIGHT,
+            })
+            .build(&event_loop)
+            .unwrap()
+    );
 
-    let mut renderer = RendererContext::new(
-        &window, 
-        Resolution { width: INITIAL_WIDTH, height: INITIAL_HEIGHT }
-    ).await;
+    let mut renderer = RendererContext::new(window.clone()).await;    
+    let mut gui_renderer = EguiRenderer::new(&renderer, window.clone());
 
-    
-    let mut gui_renderer = EguiRenderer::new(&renderer, &window);
     let mut game = Game::new(&mut renderer);
     game.init(&mut renderer);
     
