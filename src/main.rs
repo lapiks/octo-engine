@@ -8,11 +8,12 @@ mod inputs;
 mod file_watcher;
 mod utils;
 mod voxel_world;
-mod gui;
+mod egui_renderer;
 mod ray;
 mod color;
 mod transform;
 mod app;
+mod gui;
 
 use app::App;
 

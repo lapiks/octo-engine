@@ -4,31 +4,26 @@ use winit::{
     event::*, event_loop::EventLoop, keyboard::{Key, NamedKey}, window::{Window, WindowBuilder}
 };
 
-use crate::{game::Game, gui::{run_ui, EguiRenderer}, renderer_context::RendererContext, system::System};
+use crate::{egui_renderer::EguiRenderer, game::Game, gui::Gui, renderer_context::RendererContext, system::System};
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
 
 pub struct App {
     pub window: Arc<Window>,
-    pub renderer: RendererContext,
-    pub egui_renderer: EguiRenderer,
     pub game: Game,
+    pub gui: Gui,
 }
 
 impl App {
-    async fn new(window: Arc<Window>) -> Self {
-        let mut renderer = RendererContext::new(window.clone()).await;    
-        let egui_renderer = EguiRenderer::new(&renderer, window.clone());
-    
-        let mut game = Game::new(&mut renderer);
-        game.init(&mut renderer);
+    async fn new(window: Arc<Window>, renderer: &mut RendererContext) -> Self {   
+        let mut game = Game::new(renderer);
+        game.init(renderer);
 
         Self {
             window,
-            renderer,
-            egui_renderer,
             game,
+            gui: Gui::default(),
         }
     }
 
@@ -45,18 +40,21 @@ impl App {
                 .unwrap()
         );
 
-        let mut app = pollster::block_on(App::new(window.clone()));
-        
+        let mut renderer = RendererContext::new(window.clone()).await;    
+
+        let mut app = pollster::block_on(App::new(window.clone(), &mut renderer));
+        let mut egui_renderer = EguiRenderer::new(&renderer, window.clone());
+
         let _ = event_loop.run(move |event, ewlt| match event {
             Event::WindowEvent { 
                 window_id, 
                 event 
             } if window_id == window.id() => {
                 window.request_redraw();
-                app.egui_renderer.handle_input(&window, &event);
+                egui_renderer.handle_input(&window, &event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        app.game.resize(&mut app.renderer, physical_size.width, physical_size.height);
+                        app.game.resize(&mut renderer, physical_size.width, physical_size.height);
                     },
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
@@ -98,19 +96,19 @@ impl App {
                         //game.resize(&mut renderer, new_inner_size.width, new_inner_size.height);
                     },
                     WindowEvent::RedrawRequested => {
-                        app.game.hot_reload(&mut app.renderer);
+                        app.game.hot_reload(&mut renderer);
                         app.game.update();
-                        app.game.prepare_rendering(&mut app.renderer);
+                        app.game.prepare_rendering(&mut renderer);
     
-                        if let Some(mut frame) =  app.renderer.begin_frame() {
+                        if let Some(mut frame) =  renderer.begin_frame() {
                             app.game.render(&mut frame);
-                            app.egui_renderer.render(
-                                &app.renderer,
+                            egui_renderer.render(
+                                &renderer,
                                 &mut frame, 
                                 &window,
-                                |ui| run_ui(ui)
+                                |ui| app.run_ui(ui)
                             );
-                            app.renderer.commit_frame(frame);
+                            renderer.commit_frame(frame);
                         }
                     },
                     _ => {}
@@ -131,5 +129,9 @@ impl App {
             }
             _ => {}
         });
+    }
+
+    pub fn run_ui(&mut self, ctx: &egui::Context) {
+        self.gui.run_ui(ctx);
     }
 }
