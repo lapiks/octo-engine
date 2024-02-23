@@ -1,6 +1,6 @@
 use std::{time::Duration, path::Path};
 
-use glam::{Vec3, Vec2, UVec3, vec2};
+use glam::{vec2, vec3, UVec3, Vec2, Vec3};
 use thiserror::Error;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
@@ -68,10 +68,13 @@ impl Game {
         
         // game datas
         let world = VoxelWorld::new(renderer);
-        let camera = Camera::new(
+        let mut camera = Camera::new(
             renderer,
             vec2(800.0, 600.0),
         );
+
+        camera.transform.position = vec3(16.0, 16.0, 16.0);
+        camera.transform.look_at(vec3(0.0, 0.0, 0.0), Vec3::Y);
         let globals = Globals::new(renderer);
 
         // render texture

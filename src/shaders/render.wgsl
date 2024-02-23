@@ -23,5 +23,5 @@ struct Camera {
 
 @fragment
 fn fs_main(@location(0) fragUV : vec2<f32>) -> @location(0) vec4<f32> {
-    return textureLoad(t_color, vec2<i32>(fragUV * camera.size), 0);
+    return textureLoad(t_color, vec2<i32>(vec2(fragUV.x, 1.0 - fragUV.y) * camera.size), 0);
 }

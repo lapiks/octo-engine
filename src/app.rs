@@ -24,7 +24,7 @@ impl App {
         Self {
             window,
             game,
-            editor: Editor::default(),
+            editor: Editor::new(),
             show_editor: true,
         }
     }
@@ -113,7 +113,7 @@ impl App {
                                     &renderer,
                                     &mut frame, 
                                     &window,
-                                    |ui| app.run_ui(ui, game_texture)
+                                    |ui| app.run_ui(ui, &renderer, game_texture)
                                 );
                             }
                             renderer.commit_frame(frame);
@@ -139,7 +139,7 @@ impl App {
         });
     }
 
-    pub fn run_ui(&mut self, ctx: &egui::Context, game_texture: Option<egui::TextureId>) {
-        self.editor.run_ui(ctx, game_texture);
+    pub fn run_ui(&mut self, ctx: &egui::Context, renderer: &RendererContext, game_texture: Option<egui::TextureId>) {
+        self.editor.run_ui(ctx, renderer, game_texture);
     }
 }

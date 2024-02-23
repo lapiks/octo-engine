@@ -64,5 +64,5 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
         }
     }
 	
-    textureStore(output_texture, vec2(i32(global_id.x), i32(global_id.y)), vec4<f32>(color, 1.0));
+    textureStore(output_texture, vec2(i32(global_id.x), i32(u32(camera.size.y) - global_id.y)), vec4<f32>(color, 1.0));
 }
