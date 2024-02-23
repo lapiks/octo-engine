@@ -37,6 +37,7 @@ impl TabViewer for GuiContext<'_> {
     fn ui(&mut self, ui: &mut Ui, tab: &mut Self::Tab) {
         match tab {
             GuiTab::GameView => self.game_view(ui),
+            GuiTab::RendererContext => self.renderer_context(ui),
             _ => {}
         }
     }
@@ -62,6 +63,15 @@ impl GuiContext<'_> {
                 (game_texture, ui.available_size())
             );  
         }
+    }
+
+    fn renderer_context(&mut self, ui: &mut Ui) {
+        ui.label(format!("Render pipelines: {}", self.renderer.render_pipeline_count()));
+        ui.label(format!("Compute pipelines: {}", self.renderer.compute_pipeline_count()));
+        ui.label(format!("Bind groups: {}", self.renderer.bind_group_count()));
+        ui.label(format!("Shaders: {}", self.renderer.shader_count()));
+        ui.label(format!("Textures: {}", self.renderer.texture_count()));
+        ui.label(format!("Buffers: {}", self.renderer.buffer_count()));
     }
 }
 

@@ -557,4 +557,28 @@ impl RendererContext {
         self.queue.submit(std::iter::once(frame.encoder.finish()));
         frame.surface_texture.present();
     }
+
+    pub fn render_pipeline_count(&self) -> usize {
+        self.render_pipelines.len()
+    }
+
+    pub fn compute_pipeline_count(&self) -> usize {
+        self.compute_pipelines.len()
+    }
+    
+    pub fn texture_count(&self) -> usize {
+        self.textures.len()
+    }
+
+    pub fn bind_group_count(&self) -> usize {
+        self.bind_groups.len()
+    }
+
+    pub fn shader_count(&self) -> usize {
+        self.shaders.len()
+    }
+
+    pub fn buffer_count(&self) -> usize {
+        self.buffers.len()
+    }
 }
