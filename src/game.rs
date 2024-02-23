@@ -389,15 +389,18 @@ impl System for Game {
         self.inputs.on_mouse_wheel(delta);
     }
 
-    fn resize(&mut self, renderer: &mut RendererContext, width: u32, height: u32) {
-        renderer.resize(Resolution { width: width, height: height });
+    fn resize(&mut self, renderer: &mut RendererContext, resolution: Resolution) {
+        if resolution.width == 0 || resolution.height == 0 {
+            return;
+        }
+        
         renderer.update_texture(
             self.output_texture,
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {
-                    width: width,
-                    height: height,
+                    width: resolution.width,
+                    height: resolution.height,
                     depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
@@ -408,7 +411,7 @@ impl System for Game {
                 view_formats: &[],
             }
         );
-        self.camera.set_size(Vec2::new(width as f32, height as f32));
+        self.camera.set_size(Vec2::new(resolution.width as f32, resolution.height as f32));
         self.camera.update_buffer(renderer);
     }
 }

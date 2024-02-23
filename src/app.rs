@@ -4,7 +4,7 @@ use winit::{
     event::*, event_loop::EventLoop, keyboard::{Key, KeyCode, NamedKey}, window::{Window, WindowBuilder}
 };
 
-use crate::{egui_renderer::EguiRenderer, game::Game, editor::Editor, renderer_context::RendererContext, system::System};
+use crate::{editor::Editor, egui_renderer::EguiRenderer, game::Game, renderer_context::{RendererContext, Resolution}, system::System};
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
@@ -14,6 +14,7 @@ pub struct App {
     pub game: Game,
     pub editor: Editor,
     pub show_editor: bool,
+    pub viewport_size: Resolution,
 }
 
 impl App {
@@ -26,6 +27,10 @@ impl App {
             game,
             editor: Editor::new(),
             show_editor: true,
+            viewport_size: Resolution {
+                width: INITIAL_WIDTH,
+                height: INITIAL_HEIGHT,
+            } 
         }
     }
 
@@ -56,7 +61,16 @@ impl App {
                 egui_renderer.handle_input(&window, &event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        app.game.resize(&mut renderer, physical_size.width, physical_size.height);
+                        if !app.show_editor {
+                            app.viewport_size.width = physical_size.width;
+                            app.viewport_size.height = physical_size.height;
+                        }
+                        renderer.resize(
+                            Resolution {
+                                width: physical_size.width,
+                                height: physical_size.height,
+                            }
+                        );
                     },
                     WindowEvent::CloseRequested
                     | WindowEvent::KeyboardInput {
@@ -103,8 +117,23 @@ impl App {
                     WindowEvent::RedrawRequested => {
                         app.game.hot_reload(&mut renderer);
                         app.game.update();
+
+                        app.game.resize(
+                            &mut renderer, 
+                            match app.show_editor {
+                                true => {
+                                    let rect = app.editor.viewport_rect;
+                                    Resolution {
+                                        width: rect.width() as u32,
+                                        height: rect.height() as u32,
+                                    }
+                                }
+                                false => app.viewport_size,
+                            }
+                        );
+
                         app.game.prepare_rendering(&mut renderer);
-    
+
                         if let Some(mut frame) = renderer.begin_frame() {
                             app.game.render(&mut frame);
                             if app.show_editor {
@@ -140,6 +169,6 @@ impl App {
     }
 
     pub fn run_ui(&mut self, ctx: &egui::Context, renderer: &RendererContext, game_texture: Option<egui::TextureId>) {
-        self.editor.run_ui(ctx, renderer, game_texture);
+        self.editor.run_ui(ctx, &self.game, renderer, game_texture);
     }
 }

@@ -1,13 +1,13 @@
 use winit::{event::MouseButton, keyboard::KeyCode};
 
-use crate::renderer_context::{RendererContext, Frame};
+use crate::renderer_context::{Frame, RendererContext, Resolution};
 
 pub trait System {
     fn init(&mut self, renderer: &mut RendererContext);
     fn update(&mut self);
     fn prepare_rendering(&mut self, renderer: &mut RendererContext);
     fn render(&mut self, frame: &mut Frame);
-    fn resize(&mut self, renderer: &mut RendererContext, width: u32, height: u32);
+    fn resize(&mut self, renderer: &mut RendererContext, resolution: Resolution);
     fn on_key_down(&mut self, key: KeyCode);
     fn on_key_up(&mut self, key: KeyCode);
     fn on_mouse_button_down(&mut self, button: MouseButton);

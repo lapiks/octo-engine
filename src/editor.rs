@@ -1,7 +1,7 @@
 use egui::{ahash::{HashSet, HashSetExt}, CentralPanel, Frame, TopBottomPanel, Ui, WidgetText};
 use egui_dock::{AllowedSplits, DockArea, DockState, NodeIndex, Style, SurfaceIndex, TabViewer};
 
-use crate::renderer_context::RendererContext;
+use crate::{game::Game, renderer_context::RendererContext};
 
 
 #[derive(Debug, Eq, Hash, PartialEq, Copy, Clone)]
@@ -15,6 +15,7 @@ enum GuiTab {
 struct GuiContext<'a> {
     viewport_rect: &'a mut egui::Rect, 
     open_tabs: HashSet<GuiTab>,
+    game: &'a Game,
     renderer: &'a RendererContext,
     game_texture: Option<egui::TextureId>,
 }
@@ -105,10 +106,11 @@ impl Editor {
         }   
     }
 
-    pub fn run_ui(&mut self, ctx: &egui::Context, renderer: &RendererContext, game_texture: Option<egui::TextureId>) {
+    pub fn run_ui(&mut self, ctx: &egui::Context, game: &Game, renderer: &RendererContext, game_texture: Option<egui::TextureId>) {
         let mut gui_context = GuiContext {
             viewport_rect: &mut self.viewport_rect,
             open_tabs: self.open_tabs.clone(),
+            game,
             renderer,
             game_texture,
         };
