@@ -4,7 +4,7 @@ use crate::renderer_context::{Frame, RendererContext, Resolution};
 
 pub trait System {
     fn init(&mut self, renderer: &mut RendererContext);
-    fn update(&mut self);
+    fn update(&mut self, delta_time: f32);
     fn prepare_rendering(&mut self, renderer: &mut RendererContext);
     fn render(&mut self, frame: &mut Frame);
     fn resize(&mut self, renderer: &mut RendererContext, resolution: Resolution);

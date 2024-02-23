@@ -4,7 +4,7 @@ use winit::{
     event::*, event_loop::EventLoop, keyboard::{Key, KeyCode, NamedKey}, window::{Window, WindowBuilder}
 };
 
-use crate::{editor::Editor, egui_renderer::EguiRenderer, game::Game, renderer_context::{RendererContext, Resolution}, system::System};
+use crate::{editor::Editor, egui_renderer::EguiRenderer, game::Game, renderer_context::{RendererContext, Resolution}, system::System, time_step::TimeStep};
 
 const INITIAL_WIDTH: u32 = 1920;
 const INITIAL_HEIGHT: u32 = 1080;
@@ -12,18 +12,20 @@ const INITIAL_HEIGHT: u32 = 1080;
 pub struct App {
     pub window: Arc<Window>,
     pub game: Game,
+    pub time_step: TimeStep,
     pub editor: Editor,
     pub show_editor: bool,
 }
 
 impl App {
-    async fn new(window: Arc<Window>, renderer: &mut RendererContext) -> Self {   
+    fn new(window: Arc<Window>, renderer: &mut RendererContext) -> Self {   
         let mut game = Game::new(renderer);
         game.init(renderer);
 
         Self {
             window,
             game,
+            time_step: TimeStep::new(),
             editor: Editor::new(),
             show_editor: true,
         }
@@ -44,7 +46,7 @@ impl App {
 
         let mut renderer = RendererContext::new(window.clone()).await;    
 
-        let mut app = pollster::block_on(App::new(window.clone(), &mut renderer));
+        let mut app = App::new(window.clone(), &mut renderer);
         let mut egui_renderer = EguiRenderer::new(&renderer, window.clone());
 
         let _ = event_loop.run(move |event, ewlt| match event {
@@ -107,7 +109,7 @@ impl App {
                     },
                     WindowEvent::RedrawRequested => {
                         app.game.hot_reload(&mut renderer);
-                        app.game.update();
+                        app.game.update(app.time_step.tick());
 
                         app.game.resize(
                             &mut renderer, 

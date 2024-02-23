@@ -5,7 +5,6 @@ use thiserror::Error;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
 use crate::{
-    time_step::TimeStep, 
     system::System, 
     globals::Globals,
     camera::Camera, 
@@ -45,7 +44,6 @@ pub struct Game {
     camera: Camera,
     globals: Globals,
     output_texture: TextureHandle,
-    time_step: TimeStep,
     compute_shader: Option<ShaderHandle>,
     compute_pipeline: Option<ComputePipelineHandle>,
     compute_bind_group: Option<BindGroupHandle>,
@@ -73,8 +71,8 @@ impl Game {
             vec2(800.0, 600.0),
         );
 
-        camera.transform.position = vec3(16.0, 16.0, 16.0);
-        camera.transform.look_at(vec3(0.0, 0.0, 0.0), Vec3::Y);
+        //camera.transform.position = vec3(8.0, 0.0, 8.0);
+        camera.transform.look_at(vec3(-8.0, -8.0, -8.0), Vec3::Y);
         let globals = Globals::new(renderer);
 
         // render texture
@@ -101,7 +99,6 @@ impl Game {
             camera,
             globals,
             output_texture,
-            time_step: TimeStep::new(),
             compute_shader: None,
             compute_pipeline : None,
             compute_bind_group: None,
@@ -265,8 +262,7 @@ impl System for Game {
         self.camera.transform.position = Vec3::new(0.0, 0.0, -8.0);
     }
 
-    fn update(&mut self) {
-        let delta_time = self.time_step.tick();
+    fn update(&mut self, delta_time: f32) {
         let speed = 5.0;
 
         if self.inputs.get_key_down(KeyCode::KeyW) {
@@ -393,7 +389,7 @@ impl System for Game {
         if resolution.width == 0 || resolution.height == 0 {
             return;
         }
-        
+
         renderer.update_texture(
             self.output_texture,
             &wgpu::TextureDescriptor {
