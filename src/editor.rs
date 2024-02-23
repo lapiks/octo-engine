@@ -13,7 +13,7 @@ enum GuiTab {
 }
 
 struct GuiContext<'a> {
-    viewport_rect: &'a mut egui::Rect, 
+    viewport_rect: &'a mut (bool, egui::Rect), 
     open_tabs: HashSet<GuiTab>,
     game: &'a Game,
     renderer: &'a RendererContext,
@@ -21,7 +21,7 @@ struct GuiContext<'a> {
 }
 
 pub struct Editor {
-    pub viewport_rect: egui::Rect,
+    viewport_rect: (bool, egui::Rect),
     pub style: Option<Style>,
     open_tabs: HashSet<GuiTab>,
     tree: DockState<GuiTab>,
@@ -56,7 +56,7 @@ impl GuiContext<'_> {
     }
 
     fn game_view(&mut self, ui: &mut Ui) {
-        *self.viewport_rect = ui.clip_rect();
+        self.viewport_rect.1 = ui.clip_rect();
         if let Some(game_texture) = self.game_texture {
             ui.image(
                 (game_texture, ui.available_size())
@@ -99,7 +99,7 @@ impl Editor {
         }
 
         Self {
-            viewport_rect: egui::Rect::NOTHING,
+            viewport_rect: (true, egui::Rect::NOTHING),
             style: None,
             open_tabs,
             tree: dock_state,
@@ -143,5 +143,13 @@ impl Editor {
                     .show_window_collapse_buttons(true)
                     .show_inside(ui, &mut gui_context);
             });
+    }
+
+    pub fn viewport_changed(&self) -> bool {
+        self.viewport_rect.0
+    }
+
+    pub fn viewport_rect(&self) -> egui::Rect {
+        self.viewport_rect.1
     }
 }

@@ -14,7 +14,6 @@ pub struct App {
     pub game: Game,
     pub editor: Editor,
     pub show_editor: bool,
-    pub viewport_size: Resolution,
 }
 
 impl App {
@@ -27,10 +26,6 @@ impl App {
             game,
             editor: Editor::new(),
             show_editor: true,
-            viewport_size: Resolution {
-                width: INITIAL_WIDTH,
-                height: INITIAL_HEIGHT,
-            } 
         }
     }
 
@@ -61,10 +56,6 @@ impl App {
                 egui_renderer.handle_input(&window, &event);
                 match event {
                     WindowEvent::Resized(physical_size) => {
-                        if !app.show_editor {
-                            app.viewport_size.width = physical_size.width;
-                            app.viewport_size.height = physical_size.height;
-                        }
                         renderer.resize(
                             Resolution {
                                 width: physical_size.width,
@@ -122,13 +113,19 @@ impl App {
                             &mut renderer, 
                             match app.show_editor {
                                 true => {
-                                    let rect = app.editor.viewport_rect;
+                                    let rect = app.editor.viewport_rect();
                                     Resolution {
                                         width: rect.width() as u32,
                                         height: rect.height() as u32,
                                     }
                                 }
-                                false => app.viewport_size,
+                                false => {
+                                    let win_size = app.window.inner_size();
+                                    Resolution {
+                                        width: win_size.width,
+                                        height: win_size.height,
+                                    }
+                                }
                             }
                         );
 
