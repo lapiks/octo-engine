@@ -5,29 +5,9 @@ use thiserror::Error;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
 use crate::{
-    system::System, 
-    globals::Globals,
-    camera::Camera, 
-    inputs::Inputs,
-    renderer_context::{
-        RendererContext, 
-        ComputePassDesc, 
-        Binding, 
-        BindingResource, 
-        RenderPassDesc, 
-        PipelineDesc, 
-        ComputePipelineHandle, 
-        RenderPipelineHandle, 
-        TextureHandle, 
-        Resolution, 
-        ShaderHandle, 
-        RendererContextError, 
-        Frame, 
-        BindGroupHandle
-    }, 
-    file_watcher::FileWatcher, 
-    utils::make_relative_path, 
-    voxel_world::VoxelWorld, 
+    camera::Camera, file_watcher::FileWatcher, globals::Globals, inputs::Inputs, renderer_context::{
+        BindGroupHandle, Binding, BindingResource, ComputePassDesc, ComputePipelineHandle, Frame, PipelineDesc, RenderPassDesc, RenderPipelineHandle, RendererContext, RendererContextError, Resolution, ShaderHandle, TextureHandle
+    }, sprite::Sprite, system::System, utils::make_relative_path, voxel_world::VoxelWorld 
 };
 
 
@@ -50,6 +30,7 @@ pub struct Game {
     render_shader: Option<ShaderHandle>,
     render_pipeline: Option<RenderPipelineHandle>,
     render_bind_group: Option<BindGroupHandle>,
+    sprites: Vec<Sprite>,
     file_watcher: FileWatcher,
 }
 
@@ -105,13 +86,14 @@ impl Game {
             render_shader: None,
             render_pipeline : None,
             render_bind_group: None,
+            sprites: vec![],
             file_watcher,
         }
     }
 
     fn create_shader<P: AsRef<Path>>(renderer: &mut RendererContext, path: P) -> Option<ShaderHandle> {
-        let render_shader_src = std::fs::read_to_string(path).unwrap();
-        match renderer.new_shader(render_shader_src.as_str()) {
+        let shader_src = std::fs::read_to_string(path).unwrap();
+        match renderer.new_shader(shader_src.as_str()) {
             Ok(shader) => {
                 return Some(shader);
             }
@@ -230,7 +212,7 @@ impl Game {
 
 impl System for Game {
     fn init(&mut self, renderer: &mut RendererContext) {
-        self.render_shader = Game::create_shader(renderer, "src/shaders/render.wgsl");
+        self.render_shader = Game::create_shader(renderer, "src/shaders/quad_render.wgsl");
         self.render_pipeline = self.render_shader
             .and_then(|shader| {
                 Some(Game::create_render_pipeline(
@@ -239,7 +221,7 @@ impl System for Game {
                     &self.globals
                 ))
             });
-        self.compute_shader = Game::create_shader(renderer,"src/shaders/compute.wgsl");
+        self.compute_shader = Game::create_shader(renderer,"src/shaders/voxel_compute.wgsl");
         self.compute_pipeline = self.compute_shader
             .and_then(|shader| {
                 Some(Game::create_compute_pipeline(
@@ -250,16 +232,9 @@ impl System for Game {
                 ))
             });
 
-        for z in 1..self.world.get_size().z-1 {
-            for y in 1..self.world.get_size().y-1 {
-                for x in 1..self.world.get_size().x-1 {
-                    self.world.set_voxel_at(0, &UVec3::new(x, y, z));
-                }
-            }
-        }
-
-        self.world.set_voxel_at(255, &UVec3::new(8, 8, 8));
         self.camera.transform.position = Vec3::new(0.0, 0.0, -8.0);
+
+        self.sprites.push(Sprite::new(renderer, &self.world));
     }
 
     fn update(&mut self, delta_time: f32) {
@@ -338,6 +313,15 @@ impl System for Game {
     }
 
     fn render(&mut self, frame: &mut Frame) {
+        for sprite in &self.sprites {
+            let mut cpass = frame.begin_compute_pass(
+                &ComputePassDesc {
+                pipeline: sprite.compute_pipeline,
+                bind_group: sprite.compute_bind_group,
+            });
+            cpass.dispatch(16, 16, 16);
+        }
+
         // Compute pass
         {
             let mut cpass = frame.begin_compute_pass(

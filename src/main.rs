@@ -14,6 +14,7 @@ mod color;
 mod transform;
 mod app;
 mod editor;
+mod sprite;
 
 use app::App;
 

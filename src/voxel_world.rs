@@ -4,7 +4,7 @@ use wgpu::Extent3d;
 use crate::renderer_context::{TextureHandle, RendererContext};
 
 pub struct VoxelWorld {
-    data: [[[u8; 16]; 16]; 16],
+    data: [[[u32; 16]; 16]; 16],
     size: UVec3,
     texture: TextureHandle
 }
@@ -24,8 +24,8 @@ impl VoxelWorld {
                 mip_level_count: 1,
                 sample_count: 1,
                 dimension: wgpu::TextureDimension::D3,
-                format: wgpu::TextureFormat::R8Uint,
-                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+                format: wgpu::TextureFormat::R32Uint,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST | wgpu::TextureUsages::STORAGE_BINDING,
                 view_formats: &[],
             }
         );
@@ -37,7 +37,7 @@ impl VoxelWorld {
         }
     }
 
-    pub fn set_voxel_at(&mut self, value: u8, coord: &UVec3) {
+    pub fn set_voxel_at(&mut self, value: u32, coord: &UVec3) {
         self.data[coord.x as usize][coord.y as usize][coord.z as usize] = value; 
     }
 
@@ -63,7 +63,7 @@ impl VoxelWorld {
             bytemuck::bytes_of(&self.data), 
             wgpu::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: Some(1 * self.size.x),
+                bytes_per_row: Some(4 * self.size.x),
                 rows_per_image: Some(self.size.y),
             }, 
             Extent3d {
