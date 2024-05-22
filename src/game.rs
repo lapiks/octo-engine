@@ -212,7 +212,7 @@ impl Game {
 
 impl System for Game {
     fn init(&mut self, renderer: &mut RendererContext) {
-        self.render_shader = Game::create_shader(renderer, "src/shaders/quad_render.wgsl");
+        self.render_shader = Game::create_shader(renderer, "src/shaders/quad_renderer.wgsl");
         self.render_pipeline = self.render_shader
             .and_then(|shader| {
                 Some(Game::create_render_pipeline(
@@ -221,7 +221,7 @@ impl System for Game {
                     &self.globals
                 ))
             });
-        self.compute_shader = Game::create_shader(renderer,"src/shaders/voxel_compute.wgsl");
+        self.compute_shader = Game::create_shader(renderer,"src/shaders/voxel_renderer.wgsl");
         self.compute_pipeline = self.compute_shader
             .and_then(|shader| {
                 Some(Game::create_compute_pipeline(
