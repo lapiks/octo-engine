@@ -1,6 +1,6 @@
 use std::{time::Duration, path::Path};
 
-use glam::{vec2, vec3, UVec3, Vec2, Vec3};
+use glam::{vec2, vec3, Vec2, Vec3};
 use thiserror::Error;
 use winit::{event::MouseButton, keyboard::KeyCode};
 
@@ -53,7 +53,7 @@ impl Game {
         );
 
         //camera.transform.position = vec3(8.0, 0.0, 8.0);
-        camera.transform.look_at(vec3(-8.0, -8.0, -8.0), Vec3::Y);
+
         let globals = Globals::new(renderer);
 
         // render texture
@@ -232,13 +232,15 @@ impl System for Game {
                 ))
             });
 
-        self.camera.transform.position = Vec3::new(0.0, 0.0, -8.0);
+        self.camera.transform.position = Vec3::new(32.0, 16.0, 32.0);
+        self.camera.transform.look_at(vec3(16.0, 16.0, 16.0), Vec3::Y);
 
         self.sprites.push(Sprite::new(renderer, &self.world));
     }
 
     fn update(&mut self, delta_time: f32) {
-        let speed = 5.0;
+        let speed = 25.0;
+        let rot_speed = 10.0;
 
         if self.inputs.get_key_down(KeyCode::KeyW) {
             self.camera.transform.translate(self.camera.transform.forward() * delta_time * speed);
@@ -259,10 +261,10 @@ impl System for Game {
             self.camera.transform.translate(Vec3::NEG_Y * delta_time * speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyE) {
-            self.camera.transform.rotate_y(delta_time * speed);
+            self.camera.transform.rotate_y(delta_time * rot_speed);
         }
         if self.inputs.get_key_down(KeyCode::KeyQ) {
-            self.camera.transform.rotate_y(-delta_time * speed);
+            self.camera.transform.rotate_y(-delta_time * rot_speed);
         }
 
         self.inputs.reset();
@@ -319,7 +321,7 @@ impl System for Game {
                 pipeline: sprite.compute_pipeline,
                 bind_group: sprite.compute_bind_group,
             });
-            cpass.dispatch(8, 8, 8);
+            cpass.dispatch(32, 32, 32);
         }
 
         // Compute pass

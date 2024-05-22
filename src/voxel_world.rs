@@ -3,23 +3,25 @@ use wgpu::Extent3d;
 
 use crate::renderer_context::{TextureHandle, RendererContext};
 
+const WORLD_SIZE: usize = 32; 
+
 pub struct VoxelWorld {
-    data: [[[u32; 16]; 16]; 16],
+    data: [[[u32; WORLD_SIZE]; WORLD_SIZE]; WORLD_SIZE],
     size: UVec3,
     texture: TextureHandle
 }
 
 impl VoxelWorld {
     pub fn new(renderer: &mut RendererContext) -> Self {
-        let data = [[[0; 16]; 16]; 16];
+        let data = [[[0; WORLD_SIZE]; WORLD_SIZE]; WORLD_SIZE];
 
         let texture = renderer.new_texture(
             &wgpu::TextureDescriptor {
                 label: None,
                 size: wgpu::Extent3d {
-                    width: 16,
-                    height: 16,
-                    depth_or_array_layers: 16,
+                    width: WORLD_SIZE as u32,
+                    height: WORLD_SIZE as u32,
+                    depth_or_array_layers: WORLD_SIZE as u32,
                 },
                 mip_level_count: 1,
                 sample_count: 1,
@@ -32,7 +34,7 @@ impl VoxelWorld {
 
         VoxelWorld { 
             data,
-            size: UVec3::new(16, 16, 16),
+            size: UVec3::new(WORLD_SIZE as u32, WORLD_SIZE as u32, WORLD_SIZE as u32),
             texture,
         }
     }
