@@ -9,7 +9,7 @@ pub struct Sprite {
 
 impl Sprite {
     pub fn new(renderer: &mut RendererContext, world: &VoxelWorld) -> Self {
-        let shader_src = std::fs::read_to_string("src/shaders/compute_cube.wgsl").unwrap();
+        let shader_src = std::fs::read_to_string("src/shaders/compute_sphere.wgsl").unwrap();
         let compute_shader = 
             match renderer.new_shader(shader_src.as_str()) {
                 Ok(shader) => Some(shader),
