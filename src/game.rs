@@ -319,7 +319,7 @@ impl System for Game {
                 pipeline: sprite.compute_pipeline,
                 bind_group: sprite.compute_bind_group,
             });
-            cpass.dispatch(16, 16, 16);
+            cpass.dispatch(8, 8, 8);
         }
 
         // Compute pass

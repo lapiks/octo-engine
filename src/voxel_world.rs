@@ -11,7 +11,7 @@ pub struct VoxelWorld {
 
 impl VoxelWorld {
     pub fn new(renderer: &mut RendererContext) -> Self {
-        let data = [[[255; 16]; 16]; 16];
+        let data = [[[0; 16]; 16]; 16];
 
         let texture = renderer.new_texture(
             &wgpu::TextureDescriptor {
