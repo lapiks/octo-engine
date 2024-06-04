@@ -1,2 +1,2 @@
 # Octo Engine
-Raymarching voxel engine in Rust
+A work in progress raymarching voxel engine in Rust.
